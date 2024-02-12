@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Proj2
-=======
 Group members: William Sirotkin, Arsal Farooq, Magnus Hodgson
 
 To run server, from Proj1 directory:
@@ -24,5 +21,3 @@ Open a new terminal for the client.
 To run client: java Client/myftp.java {your ip address} {same port number}
 
 This project was done in its entirety by William Sirotkin, Arsal Farooq, Magnus Hodgson. We hereby state that we have not received unauthorized help of any form. 
-
->>>>>>> da9fee1b53b8d716a7bfbcef2e3cbff41c31d6fa
