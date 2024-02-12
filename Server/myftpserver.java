@@ -11,9 +11,10 @@ public class myftpserver {
     private static PrintStream ps;
 
     public static void main(String[] args) {
-        String port = args[0];
+        String nport = args[0];
+        String tport = args[1];
         try {
-            ServerSocket serverSock = new ServerSocket(Integer.parseInt(port));
+            ServerSocket serverSock = new ServerSocket(Integer.parseInt(nport));
             System.out.println("Waiting for client...");
             clientSock = serverSock.accept();
             System.out.println("Client accepted");
@@ -36,10 +37,12 @@ public class myftpserver {
                         System.out.println("get command recognized");
                         getFile(fileName, clientSock, outputStream);
                         break;
+
                     case ("put"):
                         System.out.println("put command recognized");
                         putFile(inputArg, in, outputStream);
                         break;
+
                     case ("delete"):
                         System.out.println("delete command recognized");
                         boolean worked = deleteFile(inputArg);
@@ -49,6 +52,7 @@ public class myftpserver {
                             outputStream.writeUTF("Error deleting file");
                         }
                         break;
+
                     case ("ls"):
                         System.out.println("ls command recognized");
                         File currDirectory = new File(getPwd());
@@ -60,23 +64,27 @@ public class myftpserver {
                         }
                         outputStream.writeUTF(rtn);
                         break;
+
                     case ("cd"):
                         System.out.println("cd command recognized");
                         cd(inputArg);
                         break;
+
                     case ("mkdir"):
                         System.out.println("mkdir command recognized");
                         mkdir(directArg);
                         break;
+
                     case ("pwd"):
                         System.out.println("pwd command recognized");
                         pwd();
                         break;
+
                     case ("quit"):
                         System.out.println("quit command recognized");
                         clientSock.close();
                         serverSock.close();
-                        serverSock = new ServerSocket(Integer.parseInt(port));
+                        serverSock = new ServerSocket(Integer.parseInt(nport));
                         System.out.println("Waiting for client...");
                         clientSock = serverSock.accept();
                         System.out.println("Client accepted");
@@ -85,6 +93,10 @@ public class myftpserver {
                         outputStream = new DataOutputStream(clientSock.getOutputStream());
                         command = "";
                         break;
+
+                    case ("terminate"):
+                        break;
+
                     default:
                         System.out.println("Command not recognized.");
                 }

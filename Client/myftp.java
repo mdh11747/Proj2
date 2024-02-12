@@ -11,8 +11,10 @@ public class myftp {
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
         String sysName = args[0];
+        String nPort = args[1];
+        String tPort = args[2];
         int port = Integer.parseInt(args[1]);
-        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit" };
+        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit", "terminate" };
 
         try {
             Socket sock = new Socket(sysName, port);
@@ -26,6 +28,8 @@ public class myftp {
                 input = scan.nextLine();
                 input = input.trim();
                 command = input.substring(0, input.contains(" ") ? input.indexOf(" ") : input.length());
+                boolean threaded = command.endsWith("&");
+                if (threaded) {command.substring(0,command.length() - 2);}
                 String inputArg = input.substring(input.contains(" ") ? input.indexOf(" ") + 1 : input.length());
                 boolean contains = Arrays.stream(commands).anyMatch(command::equals);
                 File clientFile;
@@ -90,25 +94,30 @@ public class myftp {
                         case ("cd"):
                             System.out.println(br.readLine());
                             break;
-                    }
-                    if (command.equals("delete")) {
-                        try {
-                            out.writeUTF(inputArg);
-                            System.out.println("The delete command transferred to server successfully");
-                            System.out.println(in.readUTF());
-                        } catch (Exception e) {
-                            System.out.println("There was an error deleting the file");
-                        }
-                    }
-                    if (command.equals("ls")) {
-                        try {
-                            out.writeUTF(input);
-                            String fileList = in.readUTF();
-                            fileList = in.readUTF();
-                            System.out.println(fileList);
-                        } catch (Exception e) {
-                            System.out.println("There was an error listing the files");
-                        }
+                        
+                        case ("delete"):
+                            try {
+                                out.writeUTF(inputArg);
+                                System.out.println("The delete command transferred to server successfully");
+                                System.out.println(in.readUTF());
+                            } catch (Exception e) {
+                                System.out.println("There was an error deleting the file");
+                            }
+                            break;
+
+                        case ("ls"):
+                            try {
+                                out.writeUTF(input);
+                                String fileList = in.readUTF();
+                                fileList = in.readUTF();
+                                System.out.println(fileList);
+                            } catch (Exception e) {
+                                System.out.println("There was an error listing the files");
+                            }
+                            break;
+                        
+                        case ("terminate"):
+                            break;
                     }
                 } else {
                     System.out.println("Command not recognized, try again");
