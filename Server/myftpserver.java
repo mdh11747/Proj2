@@ -102,7 +102,7 @@ public class myftpserver {
                 }
             }
         } catch (IOException io) {
-            System.out.println(io);
+            io.printStackTrace();
         }
     }
 
@@ -127,18 +127,19 @@ public class myftpserver {
     }
 
     public static void putFile(String fileName, DataInputStream in, DataOutputStream out) {
-        byte[] bytes = new byte[10000];
         try {
-            int fileLength = in.read(bytes);
-            if (fileLength == 3) {} else {
-            byte[] temp = new byte[fileLength];
-            for (int i = 0; i < temp.length; i++) {
-                temp[i] = bytes[i];
+            BufferedInputStream bis = new BufferedInputStream(clientSock.getInputStream());
+            File targetFile = new File("./" + fileName);
+            OutputStream outStream = new FileOutputStream(targetFile);
+
+            byte[] buffer = new byte[8 * 1024];
+            int bytesRead;
+            while ((bytesRead = bis.read(buffer)) != -1) {
+                outStream.write(buffer, 0, bytesRead);
             }
-            FileOutputStream fos = new FileOutputStream(getPwd() + fileName);
-            fos.write(temp);
-            fos.close();
-        }
+            bis.close();
+            outStream.flush();
+            outStream.close();
         } catch (Exception e) {
             System.out.println("Exception was reached: " + e);
         }

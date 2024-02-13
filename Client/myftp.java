@@ -72,10 +72,16 @@ public class myftp {
                                     byte[] errorFile = new byte[3];
                                     out.write(errorFile, 0, 3);
                                 } else {
-                                clientFileBytes = new byte[(int) clientFile.length()];
-                                FileInputStream fis = new FileInputStream(clientFile);
-                                fis.read(clientFileBytes);
-                                out.write(clientFileBytes, 0, clientFileBytes.length);
+                                        FileInputStream fis = new FileInputStream(clientFile);
+                                        BufferedInputStream buffIn = new BufferedInputStream(fis);
+                                        BufferedOutputStream buffOut = new BufferedOutputStream(sock.getOutputStream());
+                                        byte []arr = new byte [1024 * 1024];
+                                        int available  = -1;
+                                        while((available = buffIn.read(arr)) > 0) {   
+                                            buffOut.write(arr, 0, available); 
+                                        }      
+                                        buffOut.flush();
+                                        buffOut.close();  
                                 System.out.println("File transferred to server successfully");
                                 }
                             } catch (Exception e) {
