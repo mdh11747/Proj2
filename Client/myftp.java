@@ -46,7 +46,7 @@ public class myftp {
                             }
                             String fileName = message;
                             fileName = getFileFromArg(fileName);
-                            FileOutputStream fos = new FileOutputStream("./" + fileName);
+                            FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
                             BufferedOutputStream bos = new BufferedOutputStream(fos);
                             byte[] bytes = new byte[10000];
                             try {
@@ -66,23 +66,24 @@ public class myftp {
 
                             case ("put"):
                             try {
-                                clientFile = new File("./" + inputArg);
+                                clientFile = new File("./Client/" + inputArg);
                                 if (!clientFile.exists() || inputArg.equals("")) {
                                     System.out.println("File does not exist or no file specified.");
                                     // Consider sending a signal to the server indicating failure or an invalid file size
                                 } else {
-                                    FileInputStream fis = new FileInputStream(clientFile);
-                                    BufferedInputStream buffIn = new BufferedInputStream(fis);
-                                    long fileSize = clientFile.length();
-                                    out.writeLong(fileSize); // Send the file size first
-                        
-                                    byte[] arr = new byte[8 * 1024];
-                                    int count;
-                                    while ((count = buffIn.read(arr)) > 0) {
-                                        out.write(arr, 0, count);
-                                    }
-                                    out.flush(); // Ensure all data is sent
-                                    System.out.println("File transferred to server successfully.");
+                                     FileInputStream fis = new FileInputStream(clientFile);
+                                     BufferedInputStream buffIn = new BufferedInputStream(fis);
+                                     long fileSize = clientFile.length();
+                                     out.writeLong(fileSize); // Send the file size first
+
+                                     byte[] arr = new byte[8 * 1024];
+                                     int count;
+                                     while ((count = buffIn.read(arr)) > 0) {
+                                         out.write(arr, 0, count);
+                                     }
+                                     out.flush(); // Ensure all data is sent
+                                System.out.println("File transferred to server successfully");
+
                                 }
                             } catch (Exception e) {
                                 System.out.println("Error transferring the file: " + e.getMessage());

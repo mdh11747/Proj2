@@ -6,7 +6,6 @@ import java.io.*;
 import java.lang.Thread;
 
 public class myftpserver {
-    private static String pwd = "./";
     private static Socket clientSock;
     private static PrintStream ps;
 
