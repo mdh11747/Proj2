@@ -128,23 +128,24 @@ public class myftpserver {
 
     public static void putFile(String fileName, DataInputStream in, DataOutputStream out) {
         try {
-            BufferedInputStream bis = new BufferedInputStream(clientSock.getInputStream());
+            long fileSize = in.readLong(); // Expect the file size
             File targetFile = new File("./" + fileName);
-            OutputStream outStream = new FileOutputStream(targetFile);
-
+            OutputStream fileOutStream = new FileOutputStream(targetFile);
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
-            while ((bytesRead = bis.read(buffer)) != -1) {
-                outStream.write(buffer, 0, bytesRead);
+            long totalRead = 0;
+            while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
+                fileOutStream.write(buffer, 0, bytesRead);
+                totalRead += bytesRead;
             }
-            bis.close();
-            outStream.flush();
-            outStream.close();
+            fileOutStream.flush();
+            fileOutStream.close();
+            System.out.println("File " + fileName + " received successfully.");
         } catch (Exception e) {
-            System.out.println("Exception was reached: " + e);
+            System.out.println("Exception during file reception: " + e);
         }
     }
-
+    
     public static String getFileFromArg(String arg) {
         return arg.substring(arg.indexOf("/") + 1);
     }

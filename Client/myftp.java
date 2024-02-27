@@ -64,28 +64,28 @@ public class myftp {
                             }
                             break;
 
-                        case ("put"):
+                            case ("put"):
                             try {
                                 clientFile = new File("./" + inputArg);
                                 if (!clientFile.exists() || inputArg.equals("")) {
-                                    System.out.println("There was an error transferring the fil");
-                                    byte[] errorFile = new byte[3];
-                                    out.write(errorFile, 0, 3);
+                                    System.out.println("File does not exist or no file specified.");
+                                    // Consider sending a signal to the server indicating failure or an invalid file size
                                 } else {
-                                        FileInputStream fis = new FileInputStream(clientFile);
-                                        BufferedInputStream buffIn = new BufferedInputStream(fis);
-                                        BufferedOutputStream buffOut = new BufferedOutputStream(sock.getOutputStream());
-                                        byte []arr = new byte [1024 * 1024];
-                                        int available  = -1;
-                                        while((available = buffIn.read(arr)) > 0) {   
-                                            buffOut.write(arr, 0, available); 
-                                        }      
-                                        buffOut.flush();
-                                        buffOut.close();  
-                                System.out.println("File transferred to server successfully");
+                                    FileInputStream fis = new FileInputStream(clientFile);
+                                    BufferedInputStream buffIn = new BufferedInputStream(fis);
+                                    long fileSize = clientFile.length();
+                                    out.writeLong(fileSize); // Send the file size first
+                        
+                                    byte[] arr = new byte[8 * 1024];
+                                    int count;
+                                    while ((count = buffIn.read(arr)) > 0) {
+                                        out.write(arr, 0, count);
+                                    }
+                                    out.flush(); // Ensure all data is sent
+                                    System.out.println("File transferred to server successfully.");
                                 }
                             } catch (Exception e) {
-                                System.out.println("There was an error transferring the file");
+                                System.out.println("Error transferring the file: " + e.getMessage());
                             }
                             break;
 
