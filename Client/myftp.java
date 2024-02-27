@@ -27,9 +27,10 @@ public class myftp {
                 System.out.print("mytftp>");
                 input = scan.nextLine();
                 input = input.trim();
+                boolean threaded = input.endsWith("&");
+                if (threaded) {input = input.substring(0,input.length() - 1);}
+                input = input.trim();
                 command = input.substring(0, input.contains(" ") ? input.indexOf(" ") : input.length());
-                boolean threaded = command.endsWith("&");
-                if (threaded) {command.substring(0,command.length() - 2);}
                 String inputArg = input.substring(input.contains(" ") ? input.indexOf(" ") + 1 : input.length());
                 boolean contains = Arrays.stream(commands).anyMatch(command::equals);
                 File clientFile;
@@ -37,59 +38,24 @@ public class myftp {
                 if (contains) {
                     out.writeUTF(input);
                     switch (command) {
-
                         case ("get"):
-                            String message = in.readUTF();
-                            if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
-                                System.out.println(message);
-                                continue;
-                            }
-                            String fileName = message;
-                            fileName = getFileFromArg(fileName);
-                            FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
-                            BufferedOutputStream bos = new BufferedOutputStream(fos);
-                            byte[] bytes = new byte[10000];
-                            try {
-                                int fileLength = in.read(bytes);
-                                byte[] temp = new byte[fileLength];
-                                for (int i = 0; i < temp.length; i++) {
-                                    temp[i] = bytes[i];
-                                }
-                                fos.write(temp);
-                                fos.close();
-                                System.out.println("SUCCESS: File:" + fileName
-                                        + " was transferred from server to client successfully");
-                            } catch (Exception e) {
-                                System.out.println("Exception was reached: " + e);
+                            if (threaded) {
+                                new Thread(() -> {
+                                    handleGet(in);
+                                }).start();
+                            } else {
+                                System.out.println(handleGet(in));
                             }
                             break;
-
-                            case ("put"):
-                            try {
-                                clientFile = new File("./Client/" + inputArg);
-                                if (!clientFile.exists() || inputArg.equals("")) {
-                                    System.out.println("File does not exist or no file specified.");
-                                    // Consider sending a signal to the server indicating failure or an invalid file size
-                                } else {
-                                     FileInputStream fis = new FileInputStream(clientFile);
-                                     BufferedInputStream buffIn = new BufferedInputStream(fis);
-                                     long fileSize = clientFile.length();
-                                     out.writeLong(fileSize); // Send the file size first
-
-                                     byte[] arr = new byte[8 * 1024];
-                                     int count;
-                                     while ((count = buffIn.read(arr)) > 0) {
-                                         out.write(arr, 0, count);
-                                     }
-                                     out.flush(); // Ensure all data is sent
-                                System.out.println("File transferred to server successfully");
-
-                                }
-                            } catch (Exception e) {
-                                System.out.println("Error transferring the file: " + e.getMessage());
+                        case ("put"):
+                            if (threaded) {
+                                new Thread(() -> {
+                                    handlePut(out, inputArg);
+                                }).start();
+                            } else {
+                                System.out.println(handlePut(out, inputArg));
                             }
                             break;
-
                         case ("pwd"):
                             System.out.println(br.readLine());
                             break;
@@ -137,6 +103,58 @@ public class myftp {
 
     public static String getFileFromArg(String arg) {
         return arg.substring(arg.indexOf("/") + 1);
+    }
+
+    public static String handleGet(DataInputStream in) {
+        try {
+            String message = in.readUTF();
+            if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
+                System.out.println(message);
+            }
+            String fileName = message;
+            fileName = getFileFromArg(fileName);
+            FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
+            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            byte[] bytes = new byte[10000];
+            int fileLength = in.read(bytes);
+            byte[] temp = new byte[fileLength];
+            for (int i = 0; i < temp.length; i++) {
+                temp[i] = bytes[i];
+            }
+            fos.write(temp);
+            fos.close();
+            return "SUCCESS: File:" + fileName
+                    + " was transferred from server to client successfully";
+        } catch (Exception e) {
+            return "Exception was reached: " + e;
+        }
+    }
+
+    public static String handlePut(DataOutputStream out, String inputArg) {
+        try {
+            File clientFile = new File("./Client/" + inputArg);
+            if (!clientFile.exists() || inputArg.equals("")) {
+                System.out.println("There was an error transferring the fil");
+                byte[] errorFile = new byte[3];
+                out.write(errorFile, 0, 3);
+            } else {
+                    FileInputStream fis = new FileInputStream(clientFile);
+                    BufferedInputStream buffIn = new BufferedInputStream(fis);
+                    long fileSize = clientFile.length();
+                    out.writeLong(fileSize); // Send the file size first
+
+                    byte[] arr = new byte[8 * 1024];
+                    int count;
+                    while ((count = buffIn.read(arr)) > 0) {
+                        out.write(arr, 0, count);
+                    }
+                    out.flush(); // Ensure all data is sent
+            return "File transferred to server successfully";
+            }
+        } catch (Exception e) {
+            return "There was an error transferring the file";
+        }
+        return "";
     }
 
 }
