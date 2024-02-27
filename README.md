@@ -5,12 +5,20 @@ To run server, from Proj1 directory:
     javac myftpserver.java
     java Server.myftpserver -cp .. {choose any port number}
 
+    or 
+
+    ./server.sh {nport} {tport}
+
 Open a new terminal for the client.
 
 To run client, from Proj1 directory:
     cd Client
     javac myftp.java
     java Client.myftp -cp .. {your ip address} {same port number}
+
+    or 
+
+    ./client.sh {ip_address} {nport} {tport}
 
 OR (Without compilation)
 
