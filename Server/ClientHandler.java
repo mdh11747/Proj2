@@ -6,9 +6,9 @@ import java.io.*;
 import java.lang.Thread;
 
 public class ClientHandler extends Thread {
-    private static String pwd = "./";
-    private static Socket clientSock;
-    private static PrintStream ps;
+    private String pwd = "./";
+    private Socket clientSock;
+    private PrintStream ps;
 
     public ClientHandler(Socket clientSock) {
         this.clientSock = clientSock;
@@ -94,7 +94,7 @@ public class ClientHandler extends Thread {
         }
     }  
 
-    public static void getFile(String fileName, Socket sock, DataOutputStream out) {
+    public  void getFile(String fileName, Socket sock, DataOutputStream out) {
         try {
             //DataOutputStream out = new DataOutputStream(sock.getOutputStream());
             try {
@@ -114,7 +114,7 @@ public class ClientHandler extends Thread {
         }
     }
 
-    public static void putFile(String fileName, DataInputStream in, DataOutputStream out) {
+    public  void putFile(String fileName, DataInputStream in, DataOutputStream out) {
         try {
             BufferedInputStream bis = new BufferedInputStream(clientSock.getInputStream());
             File targetFile = new File("./" + fileName);
@@ -133,11 +133,11 @@ public class ClientHandler extends Thread {
         }
     }
 
-    public static String getFileFromArg(String arg) {
+    public String getFileFromArg(String arg) {
         return arg.substring(arg.indexOf("/") + 1);
     }
 
-    private static void cd(String directory) {
+    private void cd(String directory) {
         if (directory.equals("")) {
             pwd = "./";
             ps.println("pwd is now " + pwd);
@@ -180,7 +180,7 @@ public class ClientHandler extends Thread {
         
     }
 
-    private static void mkdir(String directory) {
+    private  void mkdir(String directory) {
         try {
             String[] forbidden = { "/", "\\", ":", "!", "*", "\"", "<", ">", "?", "."};
             if (Arrays.stream(forbidden).anyMatch(directory::contains)) {
@@ -201,16 +201,16 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private static String getPwd() {
+    private  String getPwd() {
         return pwd;
     }
 
-    private static void pwd() {
+    private  void pwd() {
         System.out.println(pwd);
         ps.println(pwd);
     }
 
-    public static boolean deleteFile(String fileName) {
+    public  boolean deleteFile(String fileName) {
         File fileToDelete = new File(getPwd() + fileName);
         if (fileToDelete.exists()) {
             if (fileToDelete.delete()) {
