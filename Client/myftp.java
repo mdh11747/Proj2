@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
+import java.lang.Thread;
 
 public class myftp {
     private static String input;
@@ -28,26 +29,52 @@ public class myftp {
                 input = scan.nextLine();
                 input = input.trim();
                 boolean threaded = input.endsWith("&");
-                if (threaded) {input = input.substring(0,input.length() - 1);}
-                input = input.trim();
+                if (threaded) {input = input.substring(0,input.length() - 1); input = input.trim();}
                 command = input.substring(0, input.contains(" ") ? input.indexOf(" ") : input.length());
                 String inputArg = input.substring(input.contains(" ") ? input.indexOf(" ") + 1 : input.length());
                 boolean contains = Arrays.stream(commands).anyMatch(command::equals);
                 File clientFile;
                 byte[] clientFileBytes;
                 if (contains) {
+                    if (threaded) {
+                        input = input + "&";
+                    }
                     out.writeUTF(input);
                     switch (command) {
                         case ("get"):
+                        String message = "";
+                            try {
+                                message = in.readUTF();
+                                if (threaded) {
+                                    String commandID = message.substring(message.length() - 4, message.length());
+                                    System.out.println("Command ID for file transfer is " + commandID);
+                                    message = message.substring(0, message.length()  - 4);
+                                }
+                                if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
+                                    System.out.println(message);
+                                }
+                            } catch (Exception e) {
+                                System.out.println("There was an error" + e);
+                            }
+                            final String tempMessage = message;
                             if (threaded) {
                                 new Thread(() -> {
-                                    handleGet(in);
+                                    handleGet(in, tempMessage);
                                 }).start();
                             } else {
-                                System.out.println(handleGet(in));
+                                System.out.println(handleGet(in, tempMessage));
                             }
                             break;
                         case ("put"):
+                            try {
+                                message = in.readUTF();
+                                if (threaded) {
+                                    String commandID = message;
+                                    System.out.println("Command ID for file transfer is " + commandID);
+                                }
+                            } catch (Exception e) {
+                                System.out.println("There was an error" + e);
+                            }
                             if (threaded) {
                                 new Thread(() -> {
                                     handlePut(out, inputArg);
@@ -105,17 +132,12 @@ public class myftp {
         return arg.substring(arg.indexOf("/") + 1);
     }
 
-    public static String handleGet(DataInputStream in) {
-        try {
-            String message = in.readUTF();
-            if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
-                System.out.println(message);
-            }
-            String fileName = message;
-            fileName = getFileFromArg(fileName);
+    public static String handleGet(DataInputStream in, final String message) {
+       try {
+            String fileName = getFileFromArg(message);
             FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
-            byte[] bytes = new byte[10000];
+            byte[] bytes = new byte[100000];
             int fileLength = in.read(bytes);
             byte[] temp = new byte[fileLength];
             for (int i = 0; i < temp.length; i++) {
@@ -125,7 +147,7 @@ public class myftp {
             fos.close();
             return "SUCCESS: File:" + fileName
                     + " was transferred from server to client successfully";
-        } catch (Exception e) {
+         } catch (Exception e) {
             return "Exception was reached: " + e;
         }
     }

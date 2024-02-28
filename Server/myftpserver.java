@@ -4,10 +4,12 @@ import java.net.*;
 import java.util.Arrays;
 import java.io.*;
 import java.lang.Thread;
+import java.util.HashMap;
 
 public class myftpserver {
     private static Socket clientSock;
     private static PrintStream ps;
+    private static HashMap<String, Boolean> commandTable = new HashMap<String, Boolean>();
 
     public static void main(String[] args) {
         try {
@@ -18,7 +20,7 @@ public class myftpserver {
             System.out.println("Waiting for client...");
             clientSock = serverSock.accept();
             System.out.println("Client accepted");
-            ClientHandler clientHandler = new ClientHandler(clientSock);
+            ClientHandler clientHandler = new ClientHandler(clientSock, commandTable);
             clientHandler.start();
         }
 
