@@ -44,12 +44,10 @@ public class myftp {
                         String message = "";
                             try {
                                 message = in.readUTF();
-                                String commandID = "";
-                                if (message.endsWith("$")) {
-                                    String temp = message.substring(message.indexOf("$") + 1, message.length() - 1);
-                                    System.out.println("Command ID for file transfer is " + temp);
-                                    commandID = temp;
-                                    message = message.substring(0, message.indexOf("$"));
+                                if (threaded) {
+                                    String commandID = message.substring(message.length() - 4, message.length());
+                                    System.out.println("Command ID for file transfer is " + commandID);
+                                    message = message.substring(0, message.length()  - 4);
                                 }
                                 if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
                                     System.out.println(message);

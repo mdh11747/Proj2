@@ -112,8 +112,8 @@ public class ClientHandler extends Thread {
                 fis.read(serverFileBytes);
                 String commandID = "";
                 if (threaded) {
-                    commandID = "$" + generateCommandID() + "$";
-                    table.put(commandID.substring(1, commandID.length() - 1), false);
+                    commandID = generateCommandID();
+                    table.put(commandID, false);
                 }
                 out.writeUTF(fileName + commandID); // $ tells client a command id is present
                 out.write(serverFileBytes, 0, serverFileBytes.length);
@@ -244,12 +244,12 @@ public class ClientHandler extends Thread {
         return true;
     }
 
-    public int generateCommandID() {
+    public String generateCommandID() {
         for (int i = 1000; i < 9999; i++) {
             if (!table.containsKey(Integer.toString(i))) {
-                return i;
+                return Integer.toString(i);
             }
         }
-        return -1;
+        return "9999";
     }
 }
