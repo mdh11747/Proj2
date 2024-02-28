@@ -4,14 +4,18 @@ import java.net.*;
 import java.util.Arrays;
 import java.io.*;
 import java.lang.Thread;
+import java.util.HashMap;
+
 
 public class ClientHandler extends Thread {
     private String pwd = "./Server/";
     private Socket clientSock;
     private PrintStream ps;
+    private HashMap<String, Boolean> table;
 
-    public ClientHandler(Socket clientSock) {
+    public ClientHandler(Socket clientSock, HashMap<String, Boolean> table) {
         this.clientSock = clientSock;
+        this.table = table;
     }
     public void run() {
         try {
@@ -19,9 +23,14 @@ public class ClientHandler extends Thread {
             DataInputStream in = new DataInputStream(new BufferedInputStream(clientSock.getInputStream()));
             DataOutputStream outputStream = new DataOutputStream(clientSock.getOutputStream());
             String inputLine, inputArg, directArg, command;
+            Boolean threaded;
             command = "";
             while (true) {
                 inputLine = in.readUTF();
+                threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
+                if (threaded) {
+                    inputLine = inputLine.substring(0, inputLine.length() - 1);
+                }
                 command = inputLine.substring(0, inputLine.contains(" ") ? inputLine.indexOf(" ") : inputLine.length());
                 inputArg = getFileFromArg(
                         inputLine.substring(inputLine.contains(" ") ? inputLine.indexOf(" ") + 1 : inputLine.length()));
@@ -32,12 +41,12 @@ public class ClientHandler extends Thread {
                 switch (command) {
                     case ("get"):
                         System.out.println("get command recognized");
-                        getFile(fileName, clientSock, outputStream);
+                        getFile(fileName, clientSock, outputStream, threaded);
                         break;
 
                     case ("put"):
                         System.out.println("put command recognized");
-                        putFile(inputArg, in, outputStream);
+                        putFile(inputArg, in, outputStream, threaded);
                         break;
 
                     case ("delete"):
@@ -94,27 +103,35 @@ public class ClientHandler extends Thread {
         }
     }  
 
-    public  void getFile(String fileName, Socket sock, DataOutputStream out) {
+    public  void getFile(String fileName, Socket sock, DataOutputStream out, Boolean threaded) {
         try {
-            //DataOutputStream out = new DataOutputStream(sock.getOutputStream());
             try {
                 File serverFile = new File(getPwd() + fileName);
                 byte[] serverFileBytes = new byte[(int) serverFile.length()];
                 FileInputStream fis = new FileInputStream(serverFile);
                 fis.read(serverFileBytes);
-                out.writeUTF(fileName);
+                String commandID = "";
+                if (threaded) {
+                    commandID = "$" + generateCommandID() + "$";
+                    table.put(commandID.substring(1, commandID.length() - 1), false);
+                }
+                out.writeUTF(fileName + commandID); // $ tells client a command id is present
                 out.write(serverFileBytes, 0, serverFileBytes.length);
+                // File done transferring so change value to true for that command ID
+                if (threaded) {
+                    table.put(commandID.substring(1, commandID.length() - 1), true);
+                }
                 System.out.println("Succesfully sent file to client");
             } catch (Exception e) {
                 out.writeUTF("ERROR: " + e);
                 System.out.println(e);
             }
         } catch (Exception e) {
-            System.out.println("Exception was reached");
+
         }
     }
 
-    public  void putFile(String fileName, DataInputStream in, DataOutputStream out) {
+    public  void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
         try {
             long fileSize = in.readLong(); // Expect the file size
             File targetFile = new File(pwd + fileName);
@@ -225,5 +242,14 @@ public class ClientHandler extends Thread {
             return false;
         }
         return true;
+    }
+
+    public int generateCommandID() {
+        for (int i = 1000; i < 9999; i++) {
+            if (!table.containsKey(Integer.toString(i))) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
