@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
+import java.lang.Thread;
 
 public class myftp {
     private static String input;
@@ -53,7 +54,7 @@ public class myftp {
                                     System.out.println(message);
                                 }
                             } catch (Exception e) {
-                                System.out.println("There was an error");
+                                System.out.println("There was an error" + e);
                             }
                             final String tempMessage = message;
                             if (threaded) {
@@ -127,7 +128,7 @@ public class myftp {
             String fileName = getFileFromArg(message);
             FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
             BufferedOutputStream bos = new BufferedOutputStream(fos);
-            byte[] bytes = new byte[10000];
+            byte[] bytes = new byte[100000];
             int fileLength = in.read(bytes);
             byte[] temp = new byte[fileLength];
             for (int i = 0; i < temp.length; i++) {

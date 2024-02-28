@@ -119,7 +119,7 @@ public class ClientHandler extends Thread {
                 out.write(serverFileBytes, 0, serverFileBytes.length);
                 // File done transferring so change value to true for that command ID
                 if (threaded) {
-                    table.put(commandID.substring(1, commandID.length() - 1), true);
+                    table.put(commandID, true);
                 }
                 System.out.println("Succesfully sent file to client");
             } catch (Exception e) {
