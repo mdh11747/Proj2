@@ -133,6 +133,14 @@ public class ClientHandler extends Thread {
 
     public  void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
         try {
+            String commandID = "";
+            if (threaded) {
+                commandID = generateCommandID();
+                table.put(commandID, false);
+                out.writeUTF(commandID);
+            } else {
+                out.writeUTF("ignore");
+            }
             long fileSize = in.readLong(); // Expect the file size
             File targetFile = new File(pwd + fileName);
             OutputStream fileOutStream = new FileOutputStream(targetFile);
@@ -145,6 +153,9 @@ public class ClientHandler extends Thread {
             }
             fileOutStream.flush();
             fileOutStream.close();
+            if (threaded) {
+                table.put(commandID, true);
+            }
             System.out.println("File " + fileName + " received successfully.");
         } catch (Exception e) {
             System.out.println("Exception during file reception: " + e);

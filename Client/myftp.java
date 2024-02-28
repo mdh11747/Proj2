@@ -66,6 +66,15 @@ public class myftp {
                             }
                             break;
                         case ("put"):
+                            try {
+                                message = in.readUTF();
+                                if (threaded) {
+                                    String commandID = message;
+                                    System.out.println("Command ID for file transfer is " + commandID);
+                                }
+                            } catch (Exception e) {
+                                System.out.println("There was an error" + e);
+                            }
                             if (threaded) {
                                 new Thread(() -> {
                                     handlePut(out, inputArg);
