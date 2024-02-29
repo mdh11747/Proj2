@@ -23,13 +23,16 @@ public class myftp {
             DataOutputStream out = new DataOutputStream(sock.getOutputStream());
             String command = "";
             BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
-
+            String message = "";
             while (!command.equals("quit")) {
                 System.out.print("mytftp>");
                 input = scan.nextLine();
                 input = input.trim();
                 boolean threaded = input.endsWith("&");
-                if (threaded) {input = input.substring(0,input.length() - 1); input = input.trim();}
+                if (threaded) {
+                    input = input.substring(0, input.length() - 1);
+                    input = input.trim();
+                }
                 command = input.substring(0, input.contains(" ") ? input.indexOf(" ") : input.length());
                 String inputArg = input.substring(input.contains(" ") ? input.indexOf(" ") + 1 : input.length());
                 boolean contains = Arrays.stream(commands).anyMatch(command::equals);
@@ -42,27 +45,28 @@ public class myftp {
                     out.writeUTF(input);
                     switch (command) {
                         case ("get"):
-                        String message = "";
                             try {
                                 message = in.readUTF();
                                 if (threaded) {
-                                    String commandID = message.substring(message.length() - 4, message.length());
+                                    String commandID = message;
                                     System.out.println("Command ID for file transfer is " + commandID);
-                                    message = message.substring(0, message.length()  - 4);
-                                }
-                                if (message.length() > 5 && message.substring(0, 5).equals("ERROR")) {
-                                    System.out.println(message);
                                 }
                             } catch (Exception e) {
                                 System.out.println("There was an error" + e);
                             }
-                            final String tempMessage = message;
                             if (threaded) {
                                 new Thread(() -> {
-                                    handleGet(in, tempMessage);
+                                    handleGet(in, inputArg);
+                                    try {
+                                        in.readBoolean();
+                                    } catch (IOException e) {
+                                        // TODO Auto-generated catch block
+                                        e.printStackTrace();
+                                    }
+                                    System.out.println("Client Thread Closed");
                                 }).start();
                             } else {
-                                System.out.println(handleGet(in, tempMessage));
+                                System.out.println(handleGet(in, inputArg));
                             }
                             break;
                         case ("put"):
@@ -78,6 +82,13 @@ public class myftp {
                             if (threaded) {
                                 new Thread(() -> {
                                     handlePut(out, inputArg);
+                                    try {
+                                        in.readBoolean();
+                                    } catch (IOException e) {
+                                        // TODO Auto-generated catch block
+                                        e.printStackTrace();
+                                    }
+                                    System.out.println("Client Thread Closed");
                                 }).start();
                             } else {
                                 System.out.println(handlePut(out, inputArg));
@@ -90,11 +101,11 @@ public class myftp {
                         case ("mkdir"):
                             System.out.println(br.readLine());
                             break;
-                        
+
                         case ("cd"):
                             System.out.println(br.readLine());
                             break;
-                        
+
                         case ("delete"):
                             try {
                                 out.writeUTF(inputArg);
@@ -115,7 +126,7 @@ public class myftp {
                                 System.out.println("There was an error listing the files");
                             }
                             break;
-                        
+
                         case ("terminate"):
                             break;
                     }
@@ -132,22 +143,25 @@ public class myftp {
         return arg.substring(arg.indexOf("/") + 1);
     }
 
-    public static String handleGet(DataInputStream in, final String message) {
-       try {
-            String fileName = getFileFromArg(message);
-            FileOutputStream fos = new FileOutputStream("./Client/" + fileName);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
-            byte[] bytes = new byte[100000];
-            int fileLength = in.read(bytes);
-            byte[] temp = new byte[fileLength];
-            for (int i = 0; i < temp.length; i++) {
-                temp[i] = bytes[i];
+    public static String handleGet(DataInputStream in, String inputArg) {
+        try {
+            long fileSize = in.readLong();
+            if (fileSize < 0) {
+                return "File not found or error occurred";
             }
-            fos.write(temp);
-            fos.close();
-            return "SUCCESS: File:" + fileName
-                    + " was transferred from server to client successfully";
-         } catch (Exception e) {
+            File targetFile = new File("./Client/" + inputArg);
+            OutputStream fileOutStream = new FileOutputStream(targetFile);
+            byte[] buffer = new byte[8 * 1024];
+            int bytesRead;
+            long totalRead = 0;
+            while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
+                fileOutStream.write(buffer, 0, bytesRead);
+                totalRead += bytesRead;
+            }
+            fileOutStream.flush();
+            fileOutStream.close();
+            return ("File " + inputArg + " received successfully.");
+        } catch (Exception e) {
             return "Exception was reached: " + e;
         }
     }
@@ -156,27 +170,26 @@ public class myftp {
         try {
             File clientFile = new File("./Client/" + inputArg);
             if (!clientFile.exists() || inputArg.equals("")) {
-                System.out.println("There was an error transferring the fil");
                 byte[] errorFile = new byte[3];
                 out.write(errorFile, 0, 3);
+                return ("There was an error transferring the fil");
             } else {
-                    FileInputStream fis = new FileInputStream(clientFile);
-                    BufferedInputStream buffIn = new BufferedInputStream(fis);
-                    long fileSize = clientFile.length();
-                    out.writeLong(fileSize); // Send the file size first
+                FileInputStream fis = new FileInputStream(clientFile);
+                BufferedInputStream buffIn = new BufferedInputStream(fis);
+                long fileSize = clientFile.length();
+                out.writeLong(fileSize); // Send the file size first
 
-                    byte[] arr = new byte[8 * 1024];
-                    int count;
-                    while ((count = buffIn.read(arr)) > 0) {
-                        out.write(arr, 0, count);
-                    }
-                    out.flush(); // Ensure all data is sent
-            return "File transferred to server successfully";
+                byte[] arr = new byte[8 * 1024];
+                int count;
+                while ((count = buffIn.read(arr)) > 0) {
+                    out.write(arr, 0, count);
+                }
+                out.flush(); // Ensure all data is sent
+                return "File transferred to server successfully";
             }
         } catch (Exception e) {
             return "There was an error transferring the file";
         }
-        return "";
     }
 
 }

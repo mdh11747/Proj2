@@ -6,7 +6,6 @@ import java.io.*;
 import java.lang.Thread;
 import java.util.HashMap;
 
-
 public class ClientHandler extends Thread {
     private String pwd = "./Server/";
     private Socket clientSock;
@@ -17,6 +16,7 @@ public class ClientHandler extends Thread {
         this.clientSock = clientSock;
         this.table = table;
     }
+
     public void run() {
         try {
             ps = new PrintStream(clientSock.getOutputStream());
@@ -41,17 +41,34 @@ public class ClientHandler extends Thread {
                 switch (command) {
                     case ("get"):
                         System.out.println("get command recognized");
-                        getFile(fileName, clientSock, outputStream, threaded);
+                        getFile(fileName, outputStream, threaded);
                         break;
 
                     case ("put"):
-                        System.out.println("put command recognized");
-                        putFile(inputArg, in, outputStream, threaded);
+                        if (threaded) {
+                            System.out.println("put recognized");
+                            final String finalInputArg = inputArg;
+                            final boolean finalThreaded = threaded;
+                            new Thread(() -> {
+                                System.out.println("thread opened");
+                                putFile(finalInputArg, in, outputStream, finalThreaded);
+                                System.out.println("put file done");
+                                try {
+                                    outputStream.writeBoolean(true);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            });
+                        } else {
+                            putFile(inputArg, in, outputStream, threaded);
+                            outputStream.writeBoolean(true);
+                        }
                         break;
 
                     case ("delete"):
                         System.out.println("delete command recognized");
                         boolean worked = deleteFile(inputArg);
+
                         if (worked == true) {
                             outputStream.writeUTF("File successfully deleted");
                         } else {
@@ -101,37 +118,42 @@ public class ClientHandler extends Thread {
         } catch (IOException io) {
             io.printStackTrace();
         }
-    }  
+    }
 
-    public  void getFile(String fileName, Socket sock, DataOutputStream out, Boolean threaded) {
+    public void getFile(String fileName, DataOutputStream out, Boolean threaded) {
         try {
-            try {
-                File serverFile = new File(getPwd() + fileName);
-                byte[] serverFileBytes = new byte[(int) serverFile.length()];
-                FileInputStream fis = new FileInputStream(serverFile);
-                fis.read(serverFileBytes);
-                String commandID = "";
-                if (threaded) {
-                    commandID = generateCommandID();
-                    table.put(commandID, false);
-                }
-                out.writeUTF(fileName + commandID); // $ tells client a command id is present
-                out.write(serverFileBytes, 0, serverFileBytes.length);
-                // File done transferring so change value to true for that command ID
-                if (threaded) {
-                    table.put(commandID, true);
-                }
-                System.out.println("Succesfully sent file to client");
-            } catch (Exception e) {
-                out.writeUTF("ERROR: " + e);
-                System.out.println(e);
+            String commandID = "";
+            if (threaded) {
+                commandID = generateCommandID();
+                table.put(commandID, false);
+                out.writeUTF(commandID);
+            } else {
+                out.writeUTF("ignore");
             }
-        } catch (Exception e) {
+            File serverFile = new File(getPwd() + fileName);
+            long fileSize = serverFile.length();
+            out.writeLong(fileSize);
 
+            FileInputStream fis = new FileInputStream(serverFile);
+            BufferedInputStream buffIn = new BufferedInputStream(fis);
+            byte[] buffer = new byte[8 * 1024];
+            int bytesSent;
+            while ((bytesSent = buffIn.read(buffer)) > 0) {
+                out.write(buffer, 0, bytesSent);
+            }
+            out.flush();
+
+            if (threaded) {
+                table.put(commandID, true);
+            }
+
+            System.out.println("File " + fileName + " sent successfully");
+        } catch (Exception e) {
+            System.err.println(e);
         }
     }
 
-    public  void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
+    public void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
         try {
             String commandID = "";
             if (threaded) {
@@ -170,48 +192,47 @@ public class ClientHandler extends Thread {
         if (directory.equals("")) {
             pwd = "./";
             ps.println("pwd is now " + pwd);
-        }
-        else if (directory.equals(".") || directory.equals("./")) {
+        } else if (directory.equals(".") || directory.equals("./")) {
             ps.println("pwd is now " + pwd);
         } else {
-        try {
-            File check = new File(pwd + directory);
-            if (!check.exists() && !directory.equals("~")) {
-                ps.println("Directory does not exist, please try again");
-            } else {
-                if (directory.equals("~")) {
-                    System.out.println(directory.length());
-                    pwd = "./";
-                } else if (directory.length() == 1) {
-                    pwd = pwd + directory + "/";
-                } else if (directory.substring(0, 2).equals("..")) {
-                    File file = new File(pwd);
-                    if (!pwd.equals("./")) {
-                        pwd = file.getParent() + "/";
-                    }
-                } else if (directory.substring(0, 1).equals(".")) {
-                    pwd += directory.substring(2);
+            try {
+                File check = new File(pwd + directory);
+                if (!check.exists() && !directory.equals("~")) {
+                    ps.println("Directory does not exist, please try again");
                 } else {
-                    if (directory.substring(0, 1).equals("/")) {
-                        directory = directory.substring(1);
+                    if (directory.equals("~")) {
+                        System.out.println(directory.length());
+                        pwd = "./";
+                    } else if (directory.length() == 1) {
+                        pwd = pwd + directory + "/";
+                    } else if (directory.substring(0, 2).equals("..")) {
+                        File file = new File(pwd);
+                        if (!pwd.equals("./")) {
+                            pwd = file.getParent() + "/";
+                        }
+                    } else if (directory.substring(0, 1).equals(".")) {
+                        pwd += directory.substring(2);
+                    } else {
+                        if (directory.substring(0, 1).equals("/")) {
+                            directory = directory.substring(1);
+                        }
+                        pwd += directory;
+                        if (!(pwd.charAt(pwd.length() - 1) == '/')) {
+                            pwd += "/";
+                        }
                     }
-                    pwd += directory;
-                    if (!(pwd.charAt(pwd.length() - 1) == '/')) {
-                        pwd += "/";
-                    }
+                    ps.println("pwd is now " + pwd);
                 }
-                ps.println("pwd is now " + pwd);
+            } catch (Exception e) {
+                System.out.print(e);
             }
-        } catch (Exception e) {
-            System.out.print(e);
         }
-    }
-        
+
     }
 
-    private  void mkdir(String directory) {
+    private void mkdir(String directory) {
         try {
-            String[] forbidden = { "/", "\\", ":", "!", "*", "\"", "<", ">", "?", "."};
+            String[] forbidden = { "/", "\\", ":", "!", "*", "\"", "<", ">", "?", "." };
             if (Arrays.stream(forbidden).anyMatch(directory::contains)) {
                 ps.println("Folder name not accepted, please try again");
             } else {
@@ -219,10 +240,10 @@ public class ClientHandler extends Thread {
                 if (folder.isDirectory()) {
                     ps.println("Directory already exists, please try again");
                 } else {
-                folder.mkdirs();
-                byte[] serverFileBytes = new byte[(int) folder.length()];
-                clientSock.getOutputStream().write(serverFileBytes, 0, serverFileBytes.length);
-                ps.println(directory + " successfully created");
+                    folder.mkdirs();
+                    byte[] serverFileBytes = new byte[(int) folder.length()];
+                    clientSock.getOutputStream().write(serverFileBytes, 0, serverFileBytes.length);
+                    ps.println(directory + " successfully created");
                 }
             }
         } catch (Exception e) {
@@ -230,16 +251,16 @@ public class ClientHandler extends Thread {
         }
     }
 
-    private  String getPwd() {
+    private String getPwd() {
         return pwd;
     }
 
-    private  void pwd() {
+    private void pwd() {
         System.out.println(pwd);
         ps.println(pwd);
     }
 
-    public  boolean deleteFile(String fileName) {
+    public boolean deleteFile(String fileName) {
         File fileToDelete = new File(getPwd() + fileName);
         if (fileToDelete.exists()) {
             if (fileToDelete.delete()) {
