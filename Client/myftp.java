@@ -15,14 +15,19 @@ public class myftp {
         String nPort = args[1];
         String tPort = args[2];
         int port = Integer.parseInt(args[1]);
-        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit", "terminate" };
+        int terminatePort = Integer.parseInt(args[2]);
+        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit" };
 
         try {
             Socket sock = new Socket(sysName, port);
+            Socket tSock = new Socket(sysName, terminatePort);
             DataInputStream in = new DataInputStream(new BufferedInputStream(sock.getInputStream()));
+            DataInputStream terminateIn = new DataInputStream(new BufferedInputStream(tSock.getInputStream()));
             DataOutputStream out = new DataOutputStream(sock.getOutputStream());
+            DataOutputStream terminateOut = new DataOutputStream(tSock.getOutputStream());
             String command = "";
             BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+            BufferedReader terminateBr = new BufferedReader(new InputStreamReader(tSock.getInputStream()));
             String message = "";
             while (!command.equals("quit")) {
                 System.out.print("mytftp>");
@@ -126,12 +131,9 @@ public class myftp {
                                 System.out.println("There was an error listing the files");
                             }
                             break;
-
-                        case ("terminate"):
-                            break;
                     }
                 } else {
-                    System.out.println("Command not recognized, try again");
+                    terminateOut.writeUTF(input);
                 }
             }
         } catch (Exception e) {

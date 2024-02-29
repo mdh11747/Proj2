@@ -109,6 +109,23 @@ public class ClientHandler extends Thread {
                         break;
 
                     case ("terminate"):
+                        final String finalInputArg = inputArg;
+                        new Thread(() -> {
+                                System.out.println("thread opened");
+                                if (table.get(finalInputArg) == null) { 
+                                    System.out.println("Command Id doesn't exist");
+                                } else if (table.get(finalInputArg)) { 
+                                    System.out.println("file transfer already completed, terminate command didn't work");
+                                } else {
+                                    handleTerminate(finalInputArg);
+                                    System.out.println("terminate done");
+                                }
+                                try {
+                                    outputStream.writeBoolean(true);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                            }).start();
                         break;
 
                     default:
@@ -274,6 +291,10 @@ public class ClientHandler extends Thread {
             return false;
         }
         return true;
+    }
+
+    public void handleTerminate(String inputArg) {
+        System.out.println("handle terminate");
     }
 
     public String generateCommandID() {
