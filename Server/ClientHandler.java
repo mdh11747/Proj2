@@ -58,7 +58,7 @@ public class ClientHandler extends Thread {
                                 } catch (IOException e) {
                                     e.printStackTrace();
                                 }
-                            });
+                            }).start();
                         } else {
                             putFile(inputArg, in, outputStream, threaded);
                             outputStream.writeBoolean(true);
