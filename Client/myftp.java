@@ -62,12 +62,14 @@ public class myftp {
                             if (threaded) {
                                 new Thread(() -> {
                                     handleGet(in, inputArg);
+                                    
                                     try {
                                         in.readBoolean();
                                     } catch (IOException e) {
                                         // TODO Auto-generated catch block
                                         e.printStackTrace();
                                     }
+                                    
                                     System.out.println("Client Thread Closed");
                                 }).start();
                             } else {
@@ -87,12 +89,14 @@ public class myftp {
                             if (threaded) {
                                 new Thread(() -> {
                                     handlePut(out, inputArg);
+                                    
                                     try {
                                         in.readBoolean();
                                     } catch (IOException e) {
                                         // TODO Auto-generated catch block
                                         e.printStackTrace();
                                     }
+                                    
                                     System.out.println("Client Thread Closed");
                                 }).start();
                             } else {
@@ -134,6 +138,8 @@ public class myftp {
                     }
                 } else {
                     terminateOut.writeUTF(input);
+                    String status = terminateIn.readUTF();
+                    System.out.println(status);
                 }
             }
         } catch (Exception e) {
