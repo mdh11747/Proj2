@@ -35,6 +35,7 @@ public class myftp {
                 System.out.print("mytftp>");
                 input = scan.nextLine();
                 input = input.trim();
+                String tempInput = input;
                 threaded = input.endsWith("&");
                 if (threaded) {
                     input = input.substring(0, input.length() - 1);
@@ -54,21 +55,21 @@ public class myftp {
                     switch (command) {
                         case ("get"):
                             if (threaded) {
-                                handleThread("get", sysName, port, terminatePort, inputArg);
+                                handleThread("get", sysName, port, terminatePort, inputArg, out, input.substring(4, input.indexOf("&")));
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
                             break;
                         case ("put"):
                             if (threaded) {
-                                handleThread("put", sysName, port, terminatePort, inputArg);
+                                handleThread("put", sysName, port, terminatePort, inputArg, out, input.substring(4, input.indexOf("&")));
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
                             break;
                         case ("pwd"):
                             if (threaded) {
-                                handleThread("pwd", sysName, port, terminatePort, inputArg);
+                                handleThread("pwd", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 System.out.println(br.readLine());
                             }
@@ -76,7 +77,7 @@ public class myftp {
 
                         case ("mkdir"):
                             if (threaded) {
-                                handleThread("mkdir", sysName, port, terminatePort, inputArg);
+                                handleThread("mkdir", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 System.out.println(br.readLine());
                             }
@@ -84,7 +85,7 @@ public class myftp {
 
                         case ("cd"):
                             if (threaded) {
-                                handleThread("cd", sysName, port, terminatePort, inputArg);
+                                handleThread("cd", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 System.out.println(br.readLine());
                             }
@@ -92,7 +93,7 @@ public class myftp {
 
                         case ("delete"):
                             if (threaded) {
-                                handleThread("delete", sysName, port, terminatePort, inputArg);
+                                handleThread("delete", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 try {
                                     out.writeUTF(inputArg);
@@ -106,7 +107,7 @@ public class myftp {
 
                         case ("ls"):
                             if (threaded) {
-                                handleThread("ls", sysName, port, terminatePort, inputArg);
+                                handleThread("ls", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 try {
                                     out.writeUTF(input);
@@ -160,13 +161,23 @@ public class myftp {
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
             long totalRead = 0;
+            boolean received = true;
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
+                 if (bytesRead < 8) {
+                    targetFile.delete();
+                    received = false;
+                    break;
+                }
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
             }
             fileOutStream.flush();
             fileOutStream.close();
-            return ("File " + inputArg + " received successfully.");
+            if (received) {
+                return ("File " + inputArg + " received successfully.");
+            } else {
+                return "Deleted";
+            }
         } catch (Exception e) {
             return "Exception was reached: " + e;
         }
@@ -184,7 +195,6 @@ public class myftp {
                 BufferedInputStream buffIn = new BufferedInputStream(fis);
                 long fileSize = clientFile.length();
                 out.writeLong(fileSize); // Send the file size first
-                System.out.println("Wrote long");
 
                 byte[] arr = new byte[8 * 1024];
                 int count;
@@ -199,7 +209,7 @@ public class myftp {
         }
     }
 
-    private static void handleThread(String command, String sysName, int port, int terminatePort, String inputArg) {
+    private static void handleThread(String command, String sysName, int port, int terminatePort, String inputArg, DataOutputStream out, String fileName) {
         Thread thread = new Thread(() -> {
             try {
                 Socket threadedSock = new Socket(sysName, port);
@@ -213,11 +223,11 @@ public class myftp {
                 threadedOut.writeUTF(input.substring(0, input.length() - 1));
                 switch (command) {
                     case ("get"):
-                        System.out.println(handleGet(threadedIn, inputArg));
+                        handleGet(threadedIn, inputArg);
                         threadedIn.readBoolean();
                         break;
                     case ("put"):
-                        System.out.println(handlePut(threadedOut, inputArg));
+                        handlePut(threadedOut, inputArg);
                         break;
                     case ("pwd"):
                         System.out.println(br.readLine());
@@ -259,7 +269,12 @@ public class myftp {
             }
         });
         thread.start();
-        System.out.print("Thread id is " + thread.getId());
+        try {
+        out.writeUTF("$" + command + fileName + "#" + thread.getId());
+        } catch (Exception e) {
+
+        }
+        System.out.println("Thread id is " + thread.getId());
     }
 
 }
