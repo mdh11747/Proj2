@@ -33,6 +33,9 @@ public class ClientHandler extends Thread {
             while (true) {
                 System.out.println("Input reached");
                 System.out.println("Waiting for server input");
+                if (inputLine.length() == 0) {
+                    continue;
+                }
                 inputLine = in.readUTF();
                 System.out.println(inputLine);
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
