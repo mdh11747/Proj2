@@ -24,9 +24,11 @@ public class myftpserver {
             System.out.println("Client accepted");
             tSock = terminateSock.accept();
             System.out.println("Client accepted terminate port");
-            ClientHandler clientHandler = new ClientHandler(clientSock, commandTable);
+            DataInputStream in = new DataInputStream(clientSock.getInputStream());
+            boolean isClient = in.readBoolean();
+            ClientHandler clientHandler = new ClientHandler(isClient, clientSock, commandTable);
             clientHandler.start();
-            ClientHandler tHandler = new ClientHandler(tSock, commandTable);
+            ClientHandler tHandler = new ClientHandler(isClient, tSock, commandTable);
             tHandler.start();
         }
 

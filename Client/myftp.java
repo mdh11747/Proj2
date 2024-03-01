@@ -25,15 +25,17 @@ public class myftp {
             DataInputStream terminateIn = new DataInputStream(new BufferedInputStream(tSock.getInputStream()));
             DataOutputStream out = new DataOutputStream(sock.getOutputStream());
             DataOutputStream terminateOut = new DataOutputStream(tSock.getOutputStream());
+            out.writeBoolean(true);
             String command = "";
             BufferedReader br = new BufferedReader(new InputStreamReader(sock.getInputStream()));
             BufferedReader terminateBr = new BufferedReader(new InputStreamReader(tSock.getInputStream()));
             String message = "";
+            boolean threaded;
             while (!command.equals("quit")) {
                 System.out.print("mytftp>");
                 input = scan.nextLine();
                 input = input.trim();
-                boolean threaded = input.endsWith("&");
+                threaded = input.endsWith("&");
                 if (threaded) {
                     input = input.substring(0, input.length() - 1);
                     input = input.trim();
@@ -46,58 +48,56 @@ public class myftp {
                 if (contains) {
                     if (threaded) {
                         input = input + "&";
+                    } else {
+                        out.writeUTF(input);
                     }
-                    out.writeUTF(input);
                     switch (command) {
                         case ("get"):
-                            try {
-                                message = in.readUTF();
-                                if (threaded) {
-                                    String commandID = message;
-                                    System.out.println("Command ID for file transfer is " + commandID);
-                                }
-                            } catch (Exception e) {
-                                System.out.println("There was an error" + e);
-                            }
                             if (threaded) {
-                                new Thread(() -> {
-                                    handleGet(in, inputArg);
-                                    
+                                Thread thread = new Thread(() -> {
                                     try {
-                                        in.readBoolean();
-                                    } catch (IOException e) {
-                                        // TODO Auto-generated catch block
+                                        Socket threadedSock = new Socket(sysName, port);
+                                        Socket threadedTerm = new Socket(sysName, terminatePort);
+                                        DataOutputStream threadedOut = new DataOutputStream(
+                                                threadedSock.getOutputStream());
+                                        threadedOut.writeBoolean(false);
+                                        DataInputStream threadedIn = new DataInputStream(
+                                                new BufferedInputStream(threadedSock.getInputStream()));
+                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
+                                        System.out.println(handleGet(threadedIn, inputArg));
+                                        threadedIn.readBoolean();
+                                    } catch (Exception e) {
                                         e.printStackTrace();
                                     }
-                                    
-                                    System.out.println("Client Thread Closed");
-                                }).start();
+                                });
+                                thread.start();
+                                System.out.println("Thread ID is " + thread.getId());
                             } else {
-                                System.out.println(handleGet(in, inputArg));
+                                System.out.println(handlePut(out, inputArg));
                             }
                             break;
                         case ("put"):
-                            try {
-                                message = in.readUTF();
-                                if (threaded) {
-                                    String commandID = message;
-                                    System.out.println("Command ID for file transfer is " + commandID);
-                                }
-                            } catch (Exception e) {
-                                System.out.println("There was an error" + e);
-                            }
                             if (threaded) {
-                                new Thread(() -> {
-                                    handlePut(out, inputArg);
+                                Thread thread = new Thread(() -> {
                                     try {
-                                        in.readBoolean();
-                                    } catch (IOException e) {
-                                        // TODO Auto-generated catch block
+                                        Socket threadedSock = new Socket(sysName, port);
+                                        Socket threadedTerm = new Socket(sysName, terminatePort);
+                                        DataOutputStream threadedOut = new DataOutputStream(
+                                                threadedSock.getOutputStream());
+                                        threadedOut.writeBoolean(false);
+                                        DataInputStream threadedIn = new DataInputStream(
+                                                new BufferedInputStream(threadedSock.getInputStream()));
+                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
+                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
+                                        System.out.println(handlePut(threadedOut, inputArg));
+                                        threadedIn.readBoolean();
+                                        threadedSock.close();
+                                    } catch (Exception e) {
                                         e.printStackTrace();
                                     }
-                                    
-                                    System.out.println("Client Thread Closed");
-                                }).start();
+                                });
+                                thread.start();
+                                System.out.println("Thread ID is " + thread.getId());
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
@@ -107,7 +107,11 @@ public class myftp {
                             break;
 
                         case ("mkdir"):
-                            System.out.println(br.readLine());
+                            if (threaded) {
+                                //handleThread("mkdir", sysName, port, terminatePort, inputArg);
+                            } else {
+                                System.out.println(br.readLine());
+                            }
                             break;
 
                         case ("cd"):
@@ -139,7 +143,7 @@ public class myftp {
                     terminateOut.writeUTF(input);
                     String status = terminateIn.readUTF();
                     if (status.charAt(0) == '$') { // terminate get command
-                        File fileToDelete = new File("Client/"+status.substring(1));
+                        File fileToDelete = new File("Client/" + status.substring(1));
                         if (fileToDelete.exists()) {
                             if (fileToDelete.delete()) {
                                 System.out.println("File transfer terminated successfully");
@@ -155,7 +159,7 @@ public class myftp {
                 } else {
                     System.out.println("Command not recognized");
                 }
-            }  
+            }
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -200,6 +204,7 @@ public class myftp {
                 BufferedInputStream buffIn = new BufferedInputStream(fis);
                 long fileSize = clientFile.length();
                 out.writeLong(fileSize); // Send the file size first
+                System.out.println("Wrote long");
 
                 byte[] arr = new byte[8 * 1024];
                 int count;
@@ -212,6 +217,69 @@ public class myftp {
         } catch (Exception e) {
             return "There was an error transferring the file";
         }
+    }
+
+    private void handleThread(String command, String sysName, int port, int terminatePort, String inputArg) {
+        Thread thread = new Thread(() -> {
+            try {
+                Socket threadedSock = new Socket(sysName, port);
+                Socket threadedTerm = new Socket(sysName, terminatePort);
+                BufferedReader br = new BufferedReader(new InputStreamReader(threadedSock.getInputStream()));
+                BufferedReader terminateBr = new BufferedReader(new InputStreamReader(threadedTerm.getInputStream()));
+                DataOutputStream threadedOut = new DataOutputStream(threadedSock.getOutputStream());
+                threadedOut.writeBoolean(false);
+                DataInputStream threadedIn = new DataInputStream(
+                        new BufferedInputStream(threadedSock.getInputStream()));
+                threadedOut.writeUTF(input.substring(0, input.length() - 1));
+                switch (command) {
+                    case ("get"):
+                        System.out.println(handleGet(threadedIn, inputArg));
+                        threadedIn.readBoolean();
+                        break;
+                    case ("put"):
+                        System.out.println(handlePut(threadedOut, inputArg));
+                        break;
+                    case ("pwd"):
+                        System.out.println(br.readLine());
+                        break;
+
+                    case ("mkdir"):
+                        System.out.println(br.readLine());
+                        break;
+
+                    case ("cd"):
+                        System.out.println(br.readLine());
+                        break;
+
+                    case ("delete"):
+                        try {
+                            threadedOut.writeUTF(inputArg);
+                            System.out.println("The delete command transferred to server successfully");
+                            System.out.println(threadedIn.readUTF());
+                        } catch (Exception e) {
+                            System.out.println("There was an error deleting the file");
+                        }
+                        break;
+
+                    case ("ls"):
+                        try {
+                            threadedOut.writeUTF(input);
+                            String fileList = threadedIn.readUTF();
+                            fileList = threadedIn.readUTF();
+                            System.out.println(fileList);
+                        } catch (Exception e) {
+                            System.out.println("There was an error listing the files");
+                        }
+                        break;
+                }
+                threadedIn.readBoolean();
+                threadedSock.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+        System.out.print("Thread id is " + thread.getId());
     }
 
 }

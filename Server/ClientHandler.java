@@ -5,17 +5,18 @@ import java.util.Arrays;
 import java.io.*;
 import java.lang.Thread;
 import java.util.HashMap;
-import java.lang.Thread;
 
 public class ClientHandler extends Thread {
     private String pwd = "./Server/";
     private Socket clientSock;
     private PrintStream ps;
     private HashMap<String, Trio> table;
+    private boolean isClient;
 
-    public ClientHandler(Socket clientSock, HashMap<String, Trio> table) {
+    public ClientHandler(boolean isClient, Socket clientSock, HashMap<String, Trio> table) {
         this.clientSock = clientSock;
         this.table = table;
+        this.isClient = isClient;
     }
 
     public void run() {
@@ -27,10 +28,9 @@ public class ClientHandler extends Thread {
             Boolean threaded;
             command = "";
             while (true) {
+                System.out.println("Waiting for input");
                 inputLine = in.readUTF();
-                if (inputLine.length() == 0) {
-                    continue;
-                }
+                System.out.println("Input: " + inputLine);
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
                 if (threaded) {
                     inputLine = inputLine.substring(0, inputLine.length() - 1);
@@ -49,23 +49,13 @@ public class ClientHandler extends Thread {
                         break;
 
                     case ("put"):
-                        if (threaded) {
-                            System.out.println("put recognized");
-                            final String finalInputArg = inputArg;
-                            final boolean finalThreaded = threaded;
-                            new Thread(() -> {
-                                System.out.println("thread opened");
-                                putFile(finalInputArg, in, outputStream, finalThreaded);
-                                System.out.println("put file done");
-                                try {
-                                    outputStream.writeBoolean(true);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }).start();
-                        } else {
+                        
+                        if (!isClient) {
                             putFile(inputArg, in, outputStream, threaded);
                             outputStream.writeBoolean(true);
+                            return;
+                        } else {
+                            putFile(inputArg, in, outputStream, threaded);
                         }
                         break;
 
@@ -148,14 +138,6 @@ public class ClientHandler extends Thread {
 
     public void getFile(String fileName, DataOutputStream out, Boolean threaded) {
         try {
-            String commandID = "";
-            if (threaded) {
-                commandID = generateCommandID();
-                table.put(commandID, new Trio(false, fileName, "get"));
-                out.writeUTF(commandID);
-            } else {
-                out.writeUTF("ignore");
-            }
             File serverFile = new File(getPwd() + fileName);
             long fileSize = serverFile.length();
             out.writeLong(fileSize);
@@ -164,13 +146,12 @@ public class ClientHandler extends Thread {
             BufferedInputStream buffIn = new BufferedInputStream(fis);
             byte[] buffer = new byte[8 * 1024];
             int bytesSent;
-            Thread.sleep(10000);
             while ((bytesSent = buffIn.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesSent);
             }
             out.flush();
             if (threaded) {
-                table.put(commandID, new Trio(true, fileName, "get"));
+                table.put("Rawr", new Trio(true, fileName, "get"));
             }
 
             System.out.println("File " + fileName + " sent successfully");
@@ -181,22 +162,14 @@ public class ClientHandler extends Thread {
 
     public void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
         try {
-            String commandID = "";
-            if (threaded) {
-                commandID = generateCommandID();
-                table.put(commandID, new Trio(false, fileName, "get"));
-                out.writeUTF(commandID);
-            } else {
-                out.writeUTF("ignore");
-            }
             
             long fileSize = in.readLong(); // Expect the file size
+            System.out.println("Read fileSize");
             File targetFile = new File(pwd + fileName);
             OutputStream fileOutStream = new FileOutputStream(targetFile);
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
             long totalRead = 0;
-            Thread.sleep(10000); 
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
@@ -204,7 +177,7 @@ public class ClientHandler extends Thread {
             fileOutStream.flush();
             fileOutStream.close();
             if (threaded) {
-                table.put(commandID, new Trio(true, fileName, "get"));
+                table.put("rawr", new Trio(true, fileName, "get"));
             }
             System.out.println("File " + fileName + " received successfully.");
             
@@ -309,13 +282,5 @@ public class ClientHandler extends Thread {
         deleteFile(table.get(inputArg).getFileName());
     }
 
-    public String generateCommandID() {
-        for (int i = 1000; i < 9999; i++) {
-            if (!table.containsKey(Integer.toString(i))) {
-                return Integer.toString(i);
-            }
-        }
-        return "9999";
-    }
 }
 
