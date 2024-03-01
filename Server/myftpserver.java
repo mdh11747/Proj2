@@ -10,7 +10,7 @@ public class myftpserver {
     private static Socket clientSock;
     private static Socket tSock;
     private static PrintStream ps;
-    private static HashMap<String, Pair> commandTable = new HashMap<String, Pair>(); // Pair allows knowing status and file name
+    private static HashMap<String, Trio> commandTable = new HashMap<String, Trio>(); 
 
     public static void main(String[] args) {
         try {
@@ -36,13 +36,15 @@ public class myftpserver {
     }
 }
 
-class Pair {
+class Trio {
     private Boolean status;
     private String fileName;
+    private String getOrPut;
     
-    Pair (Boolean status, String fileName) {
+    Trio (Boolean status, String fileName, String getOrPut) {
         this.status = status;
         this.fileName = fileName;
+        this.getOrPut = getOrPut;
     }
 
     public Boolean getStatus() {
@@ -51,5 +53,8 @@ class Pair {
 
     public String getFileName() {
         return fileName;
+    }
+     public String getGetOrPut() {
+        return getOrPut;
     }
 }

@@ -89,7 +89,6 @@ public class myftp {
                             if (threaded) {
                                 new Thread(() -> {
                                     handlePut(out, inputArg);
-                                    
                                     try {
                                         in.readBoolean();
                                     } catch (IOException e) {
@@ -136,12 +135,27 @@ public class myftp {
                             }
                             break;
                     }
-                } else {
+                } else if (command.equalsIgnoreCase("terminate")) {
                     terminateOut.writeUTF(input);
                     String status = terminateIn.readUTF();
-                    System.out.println(status);
+                    if (status.charAt(0) == '$') { // terminate get command
+                        File fileToDelete = new File("Client/"+status.substring(1));
+                        if (fileToDelete.exists()) {
+                            if (fileToDelete.delete()) {
+                                System.out.println("File transfer terminated successfully");
+                            } else {
+                                System.out.println("Unable to delete the file");
+                            }
+                        } else {
+                            System.out.println(status.substring(1));
+                        }
+                    } else {
+                        System.out.println(status.substring(1));
+                    }
+                } else {
+                    System.out.println("Command not recognized");
                 }
-            }
+            }  
         } catch (Exception e) {
             System.out.println(e);
         }

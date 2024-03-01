@@ -11,9 +11,9 @@ public class ClientHandler extends Thread {
     private String pwd = "./Server/";
     private Socket clientSock;
     private PrintStream ps;
-    private HashMap<String, Pair> table;
+    private HashMap<String, Trio> table;
 
-    public ClientHandler(Socket clientSock, HashMap<String, Pair> table) {
+    public ClientHandler(Socket clientSock, HashMap<String, Trio> table) {
         this.clientSock = clientSock;
         this.table = table;
     }
@@ -28,6 +28,9 @@ public class ClientHandler extends Thread {
             command = "";
             while (true) {
                 inputLine = in.readUTF();
+                if (inputLine.length() == 0) {
+                    continue;
+                }
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
                 if (threaded) {
                     inputLine = inputLine.substring(0, inputLine.length() - 1);
@@ -119,9 +122,13 @@ public class ClientHandler extends Thread {
                                     outputStream.writeUTF("Command Id doesn't exist");
                                 } else if (table.get(finalInputArg).getStatus()) { 
                                    outputStream.writeUTF("file transfer already completed, terminate command didn't work");
-                                } else {
-                                    handleTerminate(finalInputArg);
-                                    outputStream.writeUTF("Successfully terminated file trasnfer for command id: " + finalInputArg);
+                                } else { // delete on client
+                                    if (table.get(finalInputArg).getGetOrPut().equals("get")) {
+                                        outputStream.writeUTF("$"+table.get(finalInputArg).getFileName());
+                                    } else { // delete on server
+                                        handleTerminate(finalInputArg);
+                                        outputStream.writeUTF("Successfully terminated file trasnfer for command id: " + finalInputArg);
+                                    }
                                 }
                                     outputStream.writeBoolean(true);
                                 } catch (IOException e) {
@@ -134,8 +141,8 @@ public class ClientHandler extends Thread {
                         System.out.println("Command not recognized.");
                 }
             }
-        } catch (IOException io) {
-            io.printStackTrace();
+        } catch (Exception e) {
+            System.out.println(e);
         }
     }
 
@@ -144,7 +151,7 @@ public class ClientHandler extends Thread {
             String commandID = "";
             if (threaded) {
                 commandID = generateCommandID();
-                table.put(commandID, new Pair(false, fileName));
+                table.put(commandID, new Trio(false, fileName, "get"));
                 out.writeUTF(commandID);
             } else {
                 out.writeUTF("ignore");
@@ -157,12 +164,13 @@ public class ClientHandler extends Thread {
             BufferedInputStream buffIn = new BufferedInputStream(fis);
             byte[] buffer = new byte[8 * 1024];
             int bytesSent;
+            Thread.sleep(10000);
             while ((bytesSent = buffIn.read(buffer)) > 0) {
                 out.write(buffer, 0, bytesSent);
             }
             out.flush();
             if (threaded) {
-                table.put(commandID, new Pair(true, fileName));
+                table.put(commandID, new Trio(true, fileName, "get"));
             }
 
             System.out.println("File " + fileName + " sent successfully");
@@ -176,18 +184,19 @@ public class ClientHandler extends Thread {
             String commandID = "";
             if (threaded) {
                 commandID = generateCommandID();
-                table.put(commandID, new Pair(false, fileName));
+                table.put(commandID, new Trio(false, fileName, "get"));
                 out.writeUTF(commandID);
             } else {
                 out.writeUTF("ignore");
             }
+            
             long fileSize = in.readLong(); // Expect the file size
             File targetFile = new File(pwd + fileName);
             OutputStream fileOutStream = new FileOutputStream(targetFile);
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
             long totalRead = 0;
-            Thread.sleep(1000); // 15 seconds
+            Thread.sleep(10000); 
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
@@ -195,10 +204,10 @@ public class ClientHandler extends Thread {
             fileOutStream.flush();
             fileOutStream.close();
             if (threaded) {
-                System.out.println("hello");
-                table.put(commandID, new Pair(true, fileName));
+                table.put(commandID, new Trio(true, fileName, "get"));
             }
             System.out.println("File " + fileName + " received successfully.");
+            
         } catch (Exception e) {
             System.out.println("Exception during file reception: " + e);
         }
@@ -281,7 +290,7 @@ public class ClientHandler extends Thread {
     }
 
     public boolean deleteFile(String fileName) {
-        File fileToDelete = new File(getPwd() + fileName);
+       File fileToDelete = new File(getPwd() + fileName);
         if (fileToDelete.exists()) {
             if (fileToDelete.delete()) {
                 System.out.println("File deleted successfully");
@@ -289,7 +298,7 @@ public class ClientHandler extends Thread {
                 System.out.println("Unable to delete the file");
                 return false;
             }
-        } else {
+        }  else {
             System.out.println("File does not exist");
             return false;
         }
