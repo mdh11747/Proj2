@@ -13,16 +13,16 @@ public class myftpserver {
 
     public static void main(String[] args) {
         try {
-        String nport = args[0];
-        String tport = args[1];
-        ServerSocket serverSock = new ServerSocket(Integer.parseInt(nport));
-        while (true) {
-            System.out.println("Waiting for client...");
-            clientSock = serverSock.accept();
-            System.out.println("Client accepted");
-            ClientHandler clientHandler = new ClientHandler(clientSock, commandTable);
-            clientHandler.start();
-        }
+            boolean isClient = true;
+            String nport = args[0];
+            String tport = args[1];
+            ServerSocket serverSock = new ServerSocket(Integer.parseInt(nport));
+            while (true) {
+                System.out.println("Waiting for client...");
+                clientSock = serverSock.accept();
+                ClientHandler clientHandler = new ClientHandler(serverSock, clientSock, isClient, commandTable);
+                clientHandler.start();
+            }
 
         } catch (IOException ioe) {
             System.out.println(ioe);

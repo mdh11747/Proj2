@@ -9,24 +9,32 @@ import java.util.HashMap;
 public class ClientHandler extends Thread {
     private String pwd = "./Server/";
     private Socket clientSock;
+    private ServerSocket serverSock;
     private PrintStream ps;
     private HashMap<String, Boolean> table;
+    private boolean isClient;
 
-    public ClientHandler(Socket clientSock, HashMap<String, Boolean> table) {
+    public ClientHandler(ServerSocket serverSock, Socket clientSock, boolean isClient, HashMap<String, Boolean> table) {
         this.clientSock = clientSock;
+        this.serverSock = serverSock;
         this.table = table;
+        this.isClient = isClient;
     }
 
     public void run() {
         try {
+            System.out.println("ClientHandler Opened");
             ps = new PrintStream(clientSock.getOutputStream());
             DataInputStream in = new DataInputStream(new BufferedInputStream(clientSock.getInputStream()));
             DataOutputStream outputStream = new DataOutputStream(clientSock.getOutputStream());
-            String inputLine, inputArg, directArg, command;
+            String inputLine = "", inputArg, directArg, command;
             Boolean threaded;
             command = "";
             while (true) {
+                System.out.println("Input reached");
+                System.out.println("Waiting for server input");
                 inputLine = in.readUTF();
+                System.out.println(inputLine);
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
                 if (threaded) {
                     inputLine = inputLine.substring(0, inputLine.length() - 1);
@@ -45,23 +53,22 @@ public class ClientHandler extends Thread {
                         break;
 
                     case ("put"):
+                        System.out.println("put recognized");
+
                         if (threaded) {
-                            System.out.println("put recognized");
-                            final String finalInputArg = inputArg;
-                            final boolean finalThreaded = threaded;
-                            new Thread(() -> {
-                                System.out.println("thread opened");
-                                putFile(finalInputArg, in, outputStream, finalThreaded);
-                                System.out.println("put file done");
-                                try {
-                                    outputStream.writeBoolean(true);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            });
+                            putFile(inputArg, in, outputStream);
+                            try {
+                                System.out.println("pre-close");
+                                clientSock.close();
+                                System.out.println("Socket closed");
+                                return;
+                            } catch (IOException e) {
+                                // TODO Auto-generated catch block
+                                e.printStackTrace();
+                            }
+
                         } else {
-                            putFile(inputArg, in, outputStream, threaded);
-                            outputStream.writeBoolean(true);
+                            putFile(inputArg, in, outputStream);
                         }
                         break;
 
@@ -153,16 +160,9 @@ public class ClientHandler extends Thread {
         }
     }
 
-    public void putFile(String fileName, DataInputStream in, DataOutputStream out, Boolean threaded) {
+    public void putFile(String fileName, DataInputStream in, DataOutputStream out) {
         try {
-            String commandID = "";
-            if (threaded) {
-                commandID = generateCommandID();
-                table.put(commandID, false);
-                out.writeUTF(commandID);
-            } else {
-                out.writeUTF("ignore");
-            }
+            System.out.println("Waiting for filesize");
             long fileSize = in.readLong(); // Expect the file size
             File targetFile = new File(pwd + fileName);
             OutputStream fileOutStream = new FileOutputStream(targetFile);
@@ -175,10 +175,10 @@ public class ClientHandler extends Thread {
             }
             fileOutStream.flush();
             fileOutStream.close();
-            if (threaded) {
-                table.put(commandID, true);
-            }
             System.out.println("File " + fileName + " received successfully.");
+            System.out.println("Writing Ignore");
+            out.writeUTF("ignore");
+            System.out.println("Ignore wrote");
         } catch (Exception e) {
             System.out.println("Exception during file reception: " + e);
         }

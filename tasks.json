@@ -1,0 +1,27 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Server",
+            "type": "shell",
+            "command": "sh ./server.sh",
+            "isBackground": true,
+            "presentation": {
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run Client",
+            "type": "shell",
+            "command": "sh ./client.sh",
+            "isBackground": true,
+            "presentation": {
+                "panel": "new",
+                "clear": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

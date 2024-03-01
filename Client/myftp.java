@@ -16,7 +16,6 @@ public class myftp {
         String tPort = args[2];
         int port = Integer.parseInt(args[1]);
         String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit", "terminate" };
-
         try {
             Socket sock = new Socket(sysName, port);
             DataInputStream in = new DataInputStream(new BufferedInputStream(sock.getInputStream()));
@@ -42,20 +41,14 @@ public class myftp {
                     if (threaded) {
                         input = input + "&";
                     }
+                    System.out.println("Writing Input");
                     out.writeUTF(input);
+                    System.out.println("Input Wrote");
                     switch (command) {
                         case ("get"):
-                            try {
-                                message = in.readUTF();
-                                if (threaded) {
-                                    String commandID = message;
-                                    System.out.println("Command ID for file transfer is " + commandID);
-                                }
-                            } catch (Exception e) {
-                                System.out.println("There was an error" + e);
-                            }
                             if (threaded) {
-                                new Thread(() -> {
+                                long serverId = 0;
+                                Thread thread = new Thread(() -> {
                                     handleGet(in, inputArg);
                                     try {
                                         in.readBoolean();
@@ -64,37 +57,36 @@ public class myftp {
                                         e.printStackTrace();
                                     }
                                     System.out.println("Client Thread Closed");
-                                }).start();
+                                });
+                                thread.start();
                             } else {
                                 System.out.println(handleGet(in, inputArg));
                             }
                             break;
                         case ("put"):
-                            try {
-                                message = in.readUTF();
-                                if (threaded) {
-                                    String commandID = message;
-                                    System.out.println("Command ID for file transfer is " + commandID);
-                                }
-                            } catch (Exception e) {
-                                System.out.println("There was an error" + e);
-                            }
                             if (threaded) {
-                                new Thread(() -> {
-                                    handlePut(out, inputArg);
+                                Thread clientThread = new Thread(() -> {
                                     try {
-                                        in.readBoolean();
-                                    } catch (IOException e) {
+                                        System.out.println("Thread opened");
+                                        Socket threadSocket = new Socket(sysName,port);
+                                        DataInputStream threadIn = new DataInputStream(new BufferedInputStream(threadSocket.getInputStream()));
+                                        DataOutputStream threadOut = new DataOutputStream(threadSocket.getOutputStream());
+                                        threadOut.writeUTF(input.substring(0,input.length() - 1));
+                                        handlePut(threadOut, inputArg);
+                                        //threadIn.readBoolean();
+                                        threadSocket.close();
+                                    } catch (Exception e) {
                                         // TODO Auto-generated catch block
                                         e.printStackTrace();
                                     }
-                                    System.out.println("Client Thread Closed");
-                                }).start();
+                                });
+                                clientThread.start();
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
                             break;
                         case ("pwd"):
+                        System.out.println("Reading line");
                             System.out.println(br.readLine());
                             break;
 
@@ -118,9 +110,13 @@ public class myftp {
 
                         case ("ls"):
                             try {
+                                System.out.println("Writing ls");
                                 out.writeUTF(input);
+                                System.out.println("Read ls 1");
                                 String fileList = in.readUTF();
+                                System.out.println("Read ls 2");
                                 fileList = in.readUTF();
+                                System.out.println("Read done");
                                 System.out.println(fileList);
                             } catch (Exception e) {
                                 System.out.println("There was an error listing the files");
@@ -135,7 +131,7 @@ public class myftp {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -178,12 +174,14 @@ public class myftp {
                 BufferedInputStream buffIn = new BufferedInputStream(fis);
                 long fileSize = clientFile.length();
                 out.writeLong(fileSize); // Send the file size first
-
+                System.out.println("Filesize wrote");
                 byte[] arr = new byte[8 * 1024];
                 int count;
                 while ((count = buffIn.read(arr)) > 0) {
+                    
                     out.write(arr, 0, count);
                 }
+                System.out.println("while");
                 out.flush(); // Ensure all data is sent
                 return "File transferred to server successfully";
             }
