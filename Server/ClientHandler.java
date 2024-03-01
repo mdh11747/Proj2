@@ -156,9 +156,6 @@ public class ClientHandler extends Thread {
                 out.write(buffer, 0, bytesSent);
             }
             out.flush();
-            if (threaded) {
-                table.put("Rawr", new Trio(true, fileName, "get"));
-            }
 
             System.out.println("File " + fileName + " sent successfully");
         } catch (Exception e) {

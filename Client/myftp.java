@@ -54,50 +54,14 @@ public class myftp {
                     switch (command) {
                         case ("get"):
                             if (threaded) {
-                                Thread thread = new Thread(() -> {
-                                    try {
-                                        Socket threadedSock = new Socket(sysName, port);
-                                        Socket threadedTerm = new Socket(sysName, terminatePort);
-                                        DataOutputStream threadedOut = new DataOutputStream(
-                                                threadedSock.getOutputStream());
-                                        threadedOut.writeBoolean(false);
-                                        DataInputStream threadedIn = new DataInputStream(
-                                                new BufferedInputStream(threadedSock.getInputStream()));
-                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
-                                        System.out.println(handleGet(threadedIn, inputArg));
-                                        threadedIn.readBoolean();
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                });
-                                thread.start();
-                                System.out.println("Thread ID is " + thread.getId());
+                                handleThread("get", sysName, port, terminatePort, inputArg);
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
                             break;
                         case ("put"):
                             if (threaded) {
-                                Thread thread = new Thread(() -> {
-                                    try {
-                                        Socket threadedSock = new Socket(sysName, port);
-                                        Socket threadedTerm = new Socket(sysName, terminatePort);
-                                        DataOutputStream threadedOut = new DataOutputStream(
-                                                threadedSock.getOutputStream());
-                                        threadedOut.writeBoolean(false);
-                                        DataInputStream threadedIn = new DataInputStream(
-                                                new BufferedInputStream(threadedSock.getInputStream()));
-                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
-                                        threadedOut.writeUTF(input.substring(0, input.length() - 1));
-                                        System.out.println(handlePut(threadedOut, inputArg));
-                                        threadedIn.readBoolean();
-                                        threadedSock.close();
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                });
-                                thread.start();
-                                System.out.println("Thread ID is " + thread.getId());
+                                handleThread("put", sysName, port, terminatePort, inputArg);
                             } else {
                                 System.out.println(handlePut(out, inputArg));
                             }
