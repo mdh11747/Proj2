@@ -44,7 +44,13 @@ public class ClientHandler extends Thread {
                         .substring(inputLine.contains(" ") ? inputLine.indexOf(" ") + 1 : inputLine.length());
                 switch (command) {
                     case ("get"):
+                    
                         System.out.println("get command recognized");
+                        if (!isClient) {
+                            getFile(fileName, outputStream, threaded);
+                            outputStream.writeBoolean(true);
+                            return;
+                        }
                         getFile(fileName, outputStream, threaded);
                         break;
 

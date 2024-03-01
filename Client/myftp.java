@@ -103,41 +103,57 @@ public class myftp {
                             }
                             break;
                         case ("pwd"):
-                            System.out.println(br.readLine());
+                            if (threaded) {
+                                handleThread("pwd", sysName, port, terminatePort, inputArg);
+                            } else {
+                                System.out.println(br.readLine());
+                            }
                             break;
 
                         case ("mkdir"):
                             if (threaded) {
-                                //handleThread("mkdir", sysName, port, terminatePort, inputArg);
+                                handleThread("mkdir", sysName, port, terminatePort, inputArg);
                             } else {
                                 System.out.println(br.readLine());
                             }
                             break;
 
                         case ("cd"):
-                            System.out.println(br.readLine());
+                            if (threaded) {
+                                handleThread("cd", sysName, port, terminatePort, inputArg);
+                            } else {
+                                System.out.println(br.readLine());
+                            }
                             break;
 
                         case ("delete"):
-                            try {
-                                out.writeUTF(inputArg);
-                                System.out.println("The delete command transferred to server successfully");
-                                System.out.println(in.readUTF());
-                            } catch (Exception e) {
-                                System.out.println("There was an error deleting the file");
+                            if (threaded) {
+                                handleThread("delete", sysName, port, terminatePort, inputArg);
+                            } else {
+                                try {
+                                    out.writeUTF(inputArg);
+                                    System.out.println("The delete command transferred to server successfully");
+                                    System.out.println(in.readUTF());
+                                } catch (Exception e) {
+                                    System.out.println("There was an error deleting the file");
+                                }
                             }
                             break;
 
                         case ("ls"):
-                            try {
-                                out.writeUTF(input);
-                                String fileList = in.readUTF();
-                                fileList = in.readUTF();
-                                System.out.println(fileList);
-                            } catch (Exception e) {
-                                System.out.println("There was an error listing the files");
+                            if (threaded) {
+                                handleThread("ls", sysName, port, terminatePort, inputArg);
+                            } else {
+                                try {
+                                    out.writeUTF(input);
+                                    String fileList = in.readUTF();
+                                    fileList = in.readUTF();
+                                    System.out.println(fileList);
+                                } catch (Exception e) {
+                                    System.out.println("There was an error listing the files");
+                                }
+                                break;
                             }
-                            break;
                     }
                 } else if (command.equalsIgnoreCase("terminate")) {
                     terminateOut.writeUTF(input);
@@ -219,7 +235,7 @@ public class myftp {
         }
     }
 
-    private void handleThread(String command, String sysName, int port, int terminatePort, String inputArg) {
+    private static void handleThread(String command, String sysName, int port, int terminatePort, String inputArg) {
         Thread thread = new Thread(() -> {
             try {
                 Socket threadedSock = new Socket(sysName, port);
