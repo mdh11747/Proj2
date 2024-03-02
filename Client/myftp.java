@@ -168,12 +168,8 @@ public class myftp {
             long totalRead = 0;
             boolean received = true;
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
-<<<<<<< HEAD
-                 if (bytesRead < 6) {
-=======
                 if (bytesRead < 8) {
 
->>>>>>> 90f03b08bededc5f68468738761de8806cf83f6c
                     targetFile.delete();
                     received = false;
                     break;
@@ -284,7 +280,6 @@ public class myftp {
             }
         });
         thread.start();
-<<<<<<< HEAD
         int rand = 0;
         try {
         Random random = new Random();
@@ -294,7 +289,6 @@ public class myftp {
 
         }
         System.out.println("Thread id is " + thread.getId() + Integer.toString(rand));
-=======
         if (command.equals("put") || command.equals("get")) {
         try {
             out.writeUTF("$" + command + fileName + "#" + thread.getId());
@@ -310,7 +304,7 @@ public class myftp {
             e.printStackTrace();
         }
     }
->>>>>>> 90f03b08bededc5f68468738761de8806cf83f6c
+
     }
 
 }
