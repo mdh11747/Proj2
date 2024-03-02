@@ -284,18 +284,13 @@ public class myftp {
         try {
         Random random = new Random();
         rand = random.nextInt(1000);
-        out.writeUTF("$" + command + fileName + "#" + thread.getId() + Integer.toString(rand));
+         if (command.equals("put") || command.equals("get")) {
+        try {
+            out.writeUTF("$" + command + fileName + "#" + thread.getId() + Integer.toString(rand));
         } catch (Exception e) {
 
         }
         System.out.println("Thread id is " + thread.getId() + Integer.toString(rand));
-        if (command.equals("put") || command.equals("get")) {
-        try {
-            out.writeUTF("$" + command + fileName + "#" + thread.getId());
-        } catch (Exception e) {
-
-        }
-        System.out.println("Thread id is " + thread.getId());
     } else {
         try {
             out.writeUTF(command);
@@ -304,6 +299,9 @@ public class myftp {
             e.printStackTrace();
         }
     }
+        } catch (Exception e) {
+
+        }
 
     }
 
