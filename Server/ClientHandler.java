@@ -34,6 +34,7 @@ public class ClientHandler extends Thread {
                 System.out.println("Waiting for input");
                 inputLine = in.readUTF();
                 System.out.println(inputLine);
+                if (!isClient) {
                 if (inputLine.substring(0, 4).equals("$get")) {
                     String fileName = inputLine.substring(4, inputLine.indexOf("#"));
                     comm = inputLine.substring(inputLine.indexOf("#") + 1);
@@ -49,6 +50,7 @@ public class ClientHandler extends Thread {
                     }
                     table.put(comm, new Trio(false, fileName, "put"));
                 }
+            }
                 System.out.println("Input: " + inputLine);
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
                 if (threaded) {
@@ -169,7 +171,7 @@ public class ClientHandler extends Thread {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -187,7 +189,7 @@ public class ClientHandler extends Thread {
             while ((bytesSent = buffIn.read(buffer)) > 0) {
                 if (bytesSent % (8 * 1024 * 1) == 0) {
                     if (!isClient) {
-                    Thread.sleep(1);
+                    Thread.sleep(10000);
                     }
                     if (threaded && table.get(fileNameToThreadID.get(fileName)) == null) {
                         received = false;
