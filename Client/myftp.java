@@ -153,7 +153,6 @@ public class myftp {
     public static String handleGet(DataInputStream in, String inputArg) {
         try {
             long fileSize = in.readLong();
-            System.out.println(fileSize);
             if (fileSize < 0) {
                 return "File not found or error occurred";
             }
@@ -172,7 +171,6 @@ public class myftp {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
             }
-            System.out.println(totalRead);
             fileOutStream.flush();
             fileOutStream.close();
             if (received) {

@@ -13,6 +13,7 @@ public class ClientHandler extends Thread {
     private HashMap<String, Trio> table;
     private HashMap<String, String> fileNameToThreadID;
     private boolean isClient;
+    private String comm;
 
     public ClientHandler(boolean isClient, Socket clientSock, HashMap<String, Trio> table, HashMap<String, String> fileNameToThreadID) {
         this.clientSock = clientSock;
@@ -35,19 +36,26 @@ public class ClientHandler extends Thread {
                 System.out.println(inputLine);
                 if (inputLine.substring(0, 4).equals("$get")) {
                     String fileName = inputLine.substring(4, inputLine.indexOf("#"));
-                    String comm = inputLine.substring(inputLine.indexOf("#") + 1);
+                    comm = inputLine.substring(inputLine.indexOf("#") + 1);
+                    while (table.containsKey(comm)) {
+                        comm += 1;
+                    }
                     table.put(comm, new Trio(false, fileName, "get"));
-                    fileNameToThreadID.put(fileName, comm);
                 } else if (inputLine.substring(0, 4).equals("$put")) {
                     String fileName = inputLine.substring(4, inputLine.indexOf("#"));
-                    String comm = inputLine.substring(inputLine.indexOf("#") + 1);
+                    comm = inputLine.substring(inputLine.indexOf("#") + 1);
+                    while (table.containsKey(comm)) {
+                        comm += 1;
+                    }
                     table.put(comm, new Trio(false, fileName, "put"));
-                    fileNameToThreadID.put(fileName, comm);
                 }
                 System.out.println("Input: " + inputLine);
                 threaded = inputLine.trim().charAt(inputLine.length() - 1) == '&';
                 if (threaded) {
                     inputLine = inputLine.substring(0, inputLine.length() - 1);
+                }
+                if (inputLine.contains("$")) {
+                    inputLine = inputLine.substring(1, 4) + " " + inputLine.substring(4, inputLine.indexOf("#"));
                 }
                 command = inputLine.substring(0, inputLine.contains(" ") ? inputLine.indexOf(" ") : inputLine.length());
                 inputArg = getFileFromArg(
@@ -61,6 +69,8 @@ public class ClientHandler extends Thread {
                         while (fileNameToThreadID.containsKey(fileName)) {
                             
                         }
+                            fileNameToThreadID.put(fileName, comm);
+                        
                         System.out.println("get command recognized");
                         if (!isClient) {
                             getFile(fileName, outputStream, threaded);
@@ -74,6 +84,7 @@ public class ClientHandler extends Thread {
                         while (fileNameToThreadID.containsKey(fileName)) {
 
                         }
+                        fileNameToThreadID.put(fileName, comm);
                         if (!isClient) {
                             putFile(inputArg, in, outputStream, threaded);
                             outputStream.writeBoolean(true);
@@ -230,6 +241,7 @@ public class ClientHandler extends Thread {
                     }
                 }
             }
+            System.out.println("hiiiii");
             table.put(fileNameToThreadID.get(fileName), new Trio(true, fileName, "put"));
             fileOutStream.flush();
             fileOutStream.close();
