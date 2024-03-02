@@ -58,21 +58,22 @@ public class ClientHandler extends Thread {
                         .substring(inputLine.contains(" ") ? inputLine.indexOf(" ") + 1 : inputLine.length());
                 switch (command) {
                     case ("get"):
-                    
+                        while (fileNameToThreadID.containsKey(fileName)) {
+                            
+                        }
                         System.out.println("get command recognized");
                         if (!isClient) {
                             getFile(fileName, outputStream, threaded);
-                            sleep(1);
-                            System.out.println("Slept");
                             outputStream.writeBoolean(true);
                             return;
-                        } else {
-                            getFile(fileName, outputStream, threaded);
                         }
+                        getFile(fileName, outputStream, threaded);
                         break;
 
                     case ("put"):
-                        
+                        while (fileNameToThreadID.containsKey(fileName)) {
+
+                        }
                         if (!isClient) {
                             putFile(inputArg, in, outputStream, threaded);
                             outputStream.writeBoolean(true);
@@ -157,7 +158,7 @@ public class ClientHandler extends Thread {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
         }
     }
 
@@ -174,8 +175,10 @@ public class ClientHandler extends Thread {
             boolean received = true;
             while ((bytesSent = buffIn.read(buffer)) > 0) {
                 if (bytesSent % (8 * 1024 * 1) == 0) {
+                    if (!isClient) {
                     Thread.sleep(1);
-                    if (table.get(fileNameToThreadID.get(fileName)) == null) {
+                    }
+                    if (threaded && table.get(fileNameToThreadID.get(fileName)) == null) {
                         received = false;
                         byte[] temp = new byte[2];
                         temp = "$$".getBytes();
@@ -188,6 +191,7 @@ public class ClientHandler extends Thread {
                 }
                 out.write(buffer, 0, bytesSent);
             }
+            fileNameToThreadID.remove(fileName);
             System.out.println("hiiiii");
             out.flush();
             table.put(fileNameToThreadID.get(fileName), new Trio(true, fileName, "get"));
@@ -197,7 +201,7 @@ public class ClientHandler extends Thread {
                 System.out.println("deleted");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e);
         }
     }
 
@@ -216,8 +220,10 @@ public class ClientHandler extends Thread {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
                 if (totalRead % (8 * 1024 * 10) == 0) {
-                    Thread.sleep(1);
-                    if (table.get(fileNameToThreadID.get(fileName)) == null) {
+                    if (!isClient) {
+                        Thread.sleep(1);
+                    }
+                    if (threaded && table.get(fileNameToThreadID.get(fileName)) == null) {
                         deleteFile(fileName);
                         received = false;
                         break;
