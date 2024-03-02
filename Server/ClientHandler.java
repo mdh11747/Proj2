@@ -62,10 +62,13 @@ public class ClientHandler extends Thread {
                         System.out.println("get command recognized");
                         if (!isClient) {
                             getFile(fileName, outputStream, threaded);
+                            sleep(1);
+                            System.out.println("Slept");
                             outputStream.writeBoolean(true);
                             return;
+                        } else {
+                            getFile(fileName, outputStream, threaded);
                         }
-                        getFile(fileName, outputStream, threaded);
                         break;
 
                     case ("put"):
@@ -154,7 +157,7 @@ public class ClientHandler extends Thread {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -194,7 +197,7 @@ public class ClientHandler extends Thread {
                 System.out.println("deleted");
             }
         } catch (Exception e) {
-            System.err.println(e);
+            e.printStackTrace();
         }
     }
 

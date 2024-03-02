@@ -57,7 +57,7 @@ public class myftp {
                             if (threaded) {
                                 handleThread("get", sysName, port, terminatePort, inputArg, out, input.substring(4, input.indexOf("&")));
                             } else {
-                                System.out.println(handlePut(out, inputArg));
+                                System.out.println(handleGet(in, inputArg));
                             }
                             break;
                         case ("put"):
@@ -142,7 +142,7 @@ public class myftp {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -153,6 +153,7 @@ public class myftp {
     public static String handleGet(DataInputStream in, String inputArg) {
         try {
             long fileSize = in.readLong();
+            System.out.println(fileSize);
             if (fileSize < 0) {
                 return "File not found or error occurred";
             }
@@ -171,6 +172,7 @@ public class myftp {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
             }
+            System.out.println(totalRead);
             fileOutStream.flush();
             fileOutStream.close();
             if (received) {
@@ -223,8 +225,7 @@ public class myftp {
                 threadedOut.writeUTF(input.substring(0, input.length() - 1));
                 switch (command) {
                     case ("get"):
-                        handleGet(threadedIn, inputArg);
-                        threadedIn.readBoolean();
+                        System.out.println(handleGet(threadedIn, inputArg));
                         break;
                     case ("put"):
                         handlePut(threadedOut, inputArg);
