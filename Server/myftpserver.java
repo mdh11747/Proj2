@@ -11,6 +11,7 @@ public class myftpserver {
     private static Socket tSock;
     private static PrintStream ps;
     private static HashMap<String, Trio> commandTable = new HashMap<String, Trio>(); 
+    private static HashMap<String, String> fileNameToThreadID = new HashMap<String, String>();
 
     public static void main(String[] args) {
         try {
@@ -26,9 +27,9 @@ public class myftpserver {
             System.out.println("Client accepted terminate port");
             DataInputStream in = new DataInputStream(clientSock.getInputStream());
             boolean isClient = in.readBoolean();
-            ClientHandler clientHandler = new ClientHandler(isClient, clientSock, commandTable);
+            ClientHandler clientHandler = new ClientHandler(isClient, clientSock, commandTable, fileNameToThreadID);
             clientHandler.start();
-            ClientHandler tHandler = new ClientHandler(isClient, tSock, commandTable);
+            ClientHandler tHandler = new ClientHandler(isClient, tSock, commandTable, fileNameToThreadID);
             tHandler.start();
         }
 
