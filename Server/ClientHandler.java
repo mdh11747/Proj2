@@ -30,12 +30,15 @@ public class ClientHandler extends Thread {
             DataOutputStream outputStream = new DataOutputStream(clientSock.getOutputStream());
             String inputLine, inputArg, directArg, command;
             Boolean threaded;
+            String threadedCommand;
             command = "";
             while (true) {
                 System.out.println("Waiting for input");
                 inputLine = in.readUTF();
+                threadedCommand = in.readUTF();
+                if (threadedCommand.startsWith("$")) {inputLine = threadedCommand;}
                 System.out.println(inputLine);
-                if (!isClient && inputLine.length() >= 4) {
+                if (!isClient && inputLine.startsWith("$")) {
                     if (inputLine.substring(0, 4).equals("$get")) {
                         String fileName = inputLine.substring(4, inputLine.indexOf("#"));
                         comm = inputLine.substring(inputLine.indexOf("#") + 1);
@@ -69,9 +72,9 @@ public class ClientHandler extends Thread {
                         .substring(inputLine.contains(" ") ? inputLine.indexOf(" ") + 1 : inputLine.length());
                 switch (command) {
                     case ("get"):
-                        while (fileNameToThreadID.containsKey(fileName)) {
+                        /*while (fileNameToThreadID.containsKey(fileName)) {
 
-                        }
+                        }*/
                         fileNameToThreadID.put(fileName, comm);
 
                         System.out.println("get command recognized");
@@ -84,9 +87,9 @@ public class ClientHandler extends Thread {
                         break;
 
                     case ("put"):
-                        while (fileNameToThreadID.containsKey(fileName)) {
-
-                        }
+                        /*while (fileNameToThreadID.containsKey(fileName)) {
+                            System.out.println("while");
+                        }*/
                         fileNameToThreadID.put(fileName, comm);
                         if (!isClient) {
                             putFile(inputArg, in, outputStream, threaded);
@@ -118,6 +121,10 @@ public class ClientHandler extends Thread {
                             rtn += " ";
                         }
                         outputStream.writeUTF(rtn);
+                        if (!isClient) {
+                            outputStream.writeBoolean(true);
+                            return;
+                        }
                         break;
 
                     case ("cd"):
@@ -248,9 +255,13 @@ public class ClientHandler extends Thread {
                 }
             }
             System.out.println("hiiiii");
-            table.put(fileNameToThreadID.get(fileName), new Trio(true, fileName, "put"));
+            //table.put(fileNameToThreadID.get(fileName), new Trio(true, fileName, "put"));
             fileOutStream.flush();
             fileOutStream.close();
+            
+            if (threaded) {
+                table.put("rawr", new Trio(true, fileName, "get"));
+            }
             if (received) {
                 System.out.println("File " + fileName + " received successfully.");
             }

@@ -51,6 +51,8 @@ public class myftp {
                         input = input + "&";
                     } else {
                         out.writeUTF(input);
+                        out.writeUTF(input);
+                        System.out.println("Second wrote");
                     }
                     switch (command) {
                         case ("get"):
@@ -112,9 +114,7 @@ public class myftp {
                                 handleThread("ls", sysName, port, terminatePort, inputArg, out, "");
                             } else {
                                 try {
-                                    out.writeUTF(input);
                                     String fileList = in.readUTF();
-                                    fileList = in.readUTF();
                                     System.out.println(fileList);
                                 } catch (Exception e) {
                                     System.out.println("There was an error listing the files");
@@ -166,7 +166,7 @@ public class myftp {
             int bytesRead;
             long totalRead = 0;
             boolean received = true;
-            while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
+            while (totalRead < fileSize && (bytesRead = in.read(buffer)) > 0) {
                 if (bytesRead < 8) {
 
                     targetFile.delete();
@@ -240,6 +240,8 @@ public class myftp {
                         handlePut(threadedOut, inputArg);
                         break;
                     case ("pwd"):
+                    
+                    threadedOut.writeUTF(inputArg); 
                         System.out.println(br.readLine());
                         break;
 
@@ -263,9 +265,8 @@ public class myftp {
 
                     case ("ls"):
                         try {
-                            threadedOut.writeUTF(input);
+                            threadedOut.writeUTF(inputArg);
                             String fileList = threadedIn.readUTF();
-                            fileList = threadedIn.readUTF();
                             System.out.println(fileList);
                         } catch (Exception e) {
                             System.out.println("There was an error listing the files");
@@ -280,20 +281,20 @@ public class myftp {
         });
         thread.start();
         if (command.equals("put") || command.equals("get")) {
-        try {
-            out.writeUTF("$" + command + fileName + "#" + thread.getId());
-        } catch (Exception e) {
+            try {
+                out.writeUTF("$" + command + fileName + "#" + thread.getId());
+            } catch (Exception e) {
 
+            }
+            System.out.println("Thread id is " + thread.getId());
+        } else {
+            try {
+                out.writeUTF(command);
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
         }
-        System.out.println("Thread id is " + thread.getId());
-    } else {
-        try {
-            out.writeUTF(command);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
     }
 
 }
