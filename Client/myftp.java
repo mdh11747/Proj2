@@ -5,6 +5,7 @@ import java.util.Scanner;
 import java.net.*;
 import java.io.*;
 import java.lang.Thread;
+import java.util.Random;
 
 public class myftp {
     private static String input;
@@ -163,7 +164,7 @@ public class myftp {
             long totalRead = 0;
             boolean received = true;
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
-                 if (bytesRead < 8) {
+                 if (bytesRead < 6) {
                     targetFile.delete();
                     received = false;
                     break;
@@ -268,12 +269,15 @@ public class myftp {
             }
         });
         thread.start();
+        int rand = 0;
         try {
-        out.writeUTF("$" + command + fileName + "#" + thread.getId());
+        Random random = new Random();
+        rand = random.nextInt(1000);
+        out.writeUTF("$" + command + fileName + "#" + thread.getId() + Integer.toString(rand));
         } catch (Exception e) {
 
         }
-        System.out.println("Thread id is " + thread.getId());
+        System.out.println("Thread id is " + thread.getId() + Integer.toString(rand));
     }
 
 }
