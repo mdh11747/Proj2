@@ -56,7 +56,7 @@ public class myftp {
                             if (threaded) {
                                 handleThread("get", sysName, port, terminatePort, inputArg);
                             } else {
-                                System.out.println(handlePut(out, inputArg));
+                                System.out.println(handleGet(in, inputArg));
                             }
                             break;
                         case ("put"):
@@ -141,7 +141,7 @@ public class myftp {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -152,6 +152,7 @@ public class myftp {
     public static String handleGet(DataInputStream in, String inputArg) {
         try {
             long fileSize = in.readLong();
+            System.out.println(fileSize);
             if (fileSize < 0) {
                 return "File not found or error occurred";
             }
@@ -160,10 +161,12 @@ public class myftp {
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
             long totalRead = 0;
-            while (totalRead < fileSize && (bytesRead = in.read(buffer)) != -1) {
+            
+            while (totalRead < fileSize && (bytesRead = in.read(buffer)) > 0) {
                 fileOutStream.write(buffer, 0, bytesRead);
                 totalRead += bytesRead;
             }
+            System.out.println(totalRead);
             fileOutStream.flush();
             fileOutStream.close();
             return ("File " + inputArg + " received successfully.");
@@ -184,7 +187,7 @@ public class myftp {
                 BufferedInputStream buffIn = new BufferedInputStream(fis);
                 long fileSize = clientFile.length();
                 out.writeLong(fileSize); // Send the file size first
-                System.out.println("Wrote long");
+                System.out.println("FileSize: " + fileSize);
 
                 byte[] arr = new byte[8 * 1024];
                 int count;
@@ -214,7 +217,6 @@ public class myftp {
                 switch (command) {
                     case ("get"):
                         System.out.println(handleGet(threadedIn, inputArg));
-                        threadedIn.readBoolean();
                         break;
                     case ("put"):
                         System.out.println(handlePut(threadedOut, inputArg));

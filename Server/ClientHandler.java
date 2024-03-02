@@ -48,10 +48,13 @@ public class ClientHandler extends Thread {
                         System.out.println("get command recognized");
                         if (!isClient) {
                             getFile(fileName, outputStream, threaded);
+                            sleep(1);
+                            System.out.println("Slept");
                             outputStream.writeBoolean(true);
                             return;
+                        } else {
+                            getFile(fileName, outputStream, threaded);
                         }
-                        getFile(fileName, outputStream, threaded);
                         break;
 
                     case ("put"):
@@ -138,7 +141,7 @@ public class ClientHandler extends Thread {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
@@ -153,13 +156,14 @@ public class ClientHandler extends Thread {
             byte[] buffer = new byte[8 * 1024];
             int bytesSent;
             while ((bytesSent = buffIn.read(buffer)) > 0) {
+                System.out.println("While");
                 out.write(buffer, 0, bytesSent);
             }
             out.flush();
 
             System.out.println("File " + fileName + " sent successfully");
         } catch (Exception e) {
-            System.err.println(e);
+            e.printStackTrace();
         }
     }
 
