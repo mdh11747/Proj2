@@ -1,6 +1,7 @@
 package Client;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.net.*;
 import java.io.*;
@@ -8,15 +9,19 @@ import java.lang.Thread;
 
 public class myftp {
     private static String input;
+    private static HashMap<Long, Thread> activeThreads = new HashMap<>();
+   // private static HashMap<Long, Thread> activeThreadsPut = new HashMap<>();
+    private static int numThreadsOpened;
 
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
+        numThreadsOpened = 2;
         String sysName = args[0];
         String nPort = args[1];
         String tPort = args[2];
         int port = Integer.parseInt(args[1]);
         int terminatePort = Integer.parseInt(args[2]);
-        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit" };
+        String[] commands = { "get", "put", "delete", "ls", "cd", "mkdir", "pwd", "quit", "terminate" };
 
         try {
             Socket sock = new Socket(sysName, port);
@@ -32,7 +37,7 @@ public class myftp {
             String message = "";
             boolean threaded;
             while (!command.equals("quit")) {
-                System.out.print("mytftp>");
+                System.out.print("myftp>");
                 input = scan.nextLine();
                 input = input.trim();
                 threaded = input.endsWith("&");
@@ -50,6 +55,7 @@ public class myftp {
                         input = input + "&";
                     } else {
                         out.writeUTF(input);
+                        System.out.println("Wrote");
                     }
                     switch (command) {
                         case ("get"):
@@ -116,25 +122,14 @@ public class myftp {
                                 } catch (Exception e) {
                                     System.out.println("There was an error listing the files");
                                 }
-                                break;
+
                             }
-                    }
-                } else if (command.equalsIgnoreCase("terminate")) {
-                    terminateOut.writeUTF(input);
-                    String status = terminateIn.readUTF();
-                    if (status.charAt(0) == '$') { // terminate get command
-                        File fileToDelete = new File("Client/" + status.substring(1));
-                        if (fileToDelete.exists()) {
-                            if (fileToDelete.delete()) {
-                                System.out.println("File transfer terminated successfully");
-                            } else {
-                                System.out.println("Unable to delete the file");
-                            }
-                        } else {
-                            System.out.println(status.substring(1));
-                        }
-                    } else {
-                        System.out.println(status.substring(1));
+                            break;
+
+                        case ("terminate"):
+                            long threadIdToTerminate = Long.parseLong(inputArg);
+                            terminateThread(threadIdToTerminate, terminateOut);
+                            break;
                     }
                 } else {
                     System.out.println("Command not recognized");
@@ -151,6 +146,12 @@ public class myftp {
 
     public static String handleGet(DataInputStream in, String inputArg) {
         try {
+            
+            long threadId = in.readLong();
+            boolean isFile = in.readBoolean();
+            if (!isFile) {
+                return "File not found on server";
+            }
             long fileSize = in.readLong();
             System.out.println(fileSize);
             if (fileSize < 0) {
@@ -161,9 +162,14 @@ public class myftp {
             byte[] buffer = new byte[8 * 1024];
             int bytesRead;
             long totalRead = 0;
-            
+
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) > 0) {
                 fileOutStream.write(buffer, 0, bytesRead);
+                if (!activeThreads.containsKey(Long.valueOf(threadId))) {
+                    fileOutStream.flush();
+                    fileOutStream.close();
+                    targetFile.delete();
+                }
                 totalRead += bytesRead;
             }
             System.out.println(totalRead);
@@ -216,30 +222,30 @@ public class myftp {
                 threadedOut.writeUTF(input.substring(0, input.length() - 1));
                 switch (command) {
                     case ("get"):
-                        System.out.println(handleGet(threadedIn, inputArg));
+                        System.out.print(handleGet(threadedIn, inputArg) + "\nmyftp>");
                         break;
                     case ("put"):
-                        System.out.println(handlePut(threadedOut, inputArg));
+                        System.out.print(handlePut(threadedOut, inputArg) + "\nmyftp>");
                         break;
                     case ("pwd"):
-                        System.out.println(br.readLine());
+                        System.out.print("\n" + br.readLine() + "\nmyftp>");
                         break;
 
                     case ("mkdir"):
-                        System.out.println(br.readLine());
+                        System.out.print(br.readLine() + "\nmyftp>");
                         break;
 
                     case ("cd"):
-                        System.out.println(br.readLine());
+                        System.out.print(br.readLine() + "\nmyftp>");
                         break;
 
                     case ("delete"):
                         try {
                             threadedOut.writeUTF(inputArg);
-                            System.out.println("The delete command transferred to server successfully");
-                            System.out.println(threadedIn.readUTF());
+                            System.out.print("The delete command transferred to server successfully\nmyftp>");
+                            System.out.print(threadedIn.readUTF() + "\nmyftp>");
                         } catch (Exception e) {
-                            System.out.println("There was an error deleting the file");
+                            System.out.print("There was an error deleting the file\nmyftp>");
                         }
                         break;
 
@@ -248,9 +254,9 @@ public class myftp {
                             threadedOut.writeUTF(input);
                             String fileList = threadedIn.readUTF();
                             fileList = threadedIn.readUTF();
-                            System.out.println(fileList);
+                            System.out.print("\n" + fileList + "\nmyftp>");
                         } catch (Exception e) {
-                            System.out.println("There was an error listing the files");
+                            System.out.print("There was an error listing the files\nmyftp>");
                         }
                         break;
                 }
@@ -261,7 +267,27 @@ public class myftp {
             }
         });
         thread.start();
-        System.out.print("Thread id is " + thread.getId());
+        int random = (int) (Math.random() * 1000);
+        long threadId = thread.getId() + numThreadsOpened;
+        activeThreads.put(threadId, thread);
+        System.out.print("Thread id is " + threadId + "\n");
+        numThreadsOpened++;
+    }
+
+    public static void terminateThread(long threadId, DataOutputStream terminateOut) {
+        try {
+            Thread thread = activeThreads.get(threadId);
+            if (thread != null) {
+                terminateOut.writeUTF("terminate " + threadId);
+                thread.interrupt(); // Request the thread to stop
+                activeThreads.remove(threadId); // Remove the thread from the map
+                System.out.println("Thread " + threadId + " has been requested to terminate.");
+            } else {
+                System.out.println("Thread with ID " + threadId + " not found.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
