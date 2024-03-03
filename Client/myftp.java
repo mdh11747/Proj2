@@ -62,7 +62,7 @@ public class myftp {
                             if (threaded) {
                                 handleThread("get", sysName, port, terminatePort, inputArg);
                             } else {
-                                System.out.println(handleGet(in, inputArg));
+                                System.out.println(handleGet(in, inputArg, threaded));
                             }
                             break;
                         case ("put"):
@@ -144,7 +144,7 @@ public class myftp {
         return arg.substring(arg.indexOf("/") + 1);
     }
 
-    public static String handleGet(DataInputStream in, String inputArg) {
+    public static String handleGet(DataInputStream in, String inputArg, boolean threaded) {
         try {
             
             long threadId = in.readLong();
@@ -165,7 +165,7 @@ public class myftp {
 
             while (totalRead < fileSize && (bytesRead = in.read(buffer)) > 0) {
                 fileOutStream.write(buffer, 0, bytesRead);
-                if (!activeThreads.containsKey(Long.valueOf(threadId))) {
+                if (!activeThreads.containsKey(Long.valueOf(threadId)) && threaded) {
                     fileOutStream.flush();
                     fileOutStream.close();
                     targetFile.delete();
@@ -222,7 +222,7 @@ public class myftp {
                 threadedOut.writeUTF(input.substring(0, input.length() - 1));
                 switch (command) {
                     case ("get"):
-                        System.out.print(handleGet(threadedIn, inputArg) + "\nmyftp>");
+                        System.out.print(handleGet(threadedIn, inputArg, true) + "\nmyftp>");
                         break;
                     case ("put"):
                         System.out.print(handlePut(threadedOut, inputArg) + "\nmyftp>");
