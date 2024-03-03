@@ -143,7 +143,7 @@ public class ClientHandler extends Thread {
             byte[] buffer = new byte[8 * 1024];
             int bytesSent;
             while ((bytesSent = buffIn.read(buffer)) > 0) {
-                if (isTerminated.size() > 0 && isTerminated.get(String.valueOf(Thread.currentThread().getId()))) {
+                if (isTerminated.size() > 0 && isTerminated.containsKey(String.valueOf(Thread.currentThread().getId())) && isTerminated.get(String.valueOf(Thread.currentThread().getId()))) {
                     //DataOutputStream termOut = new DataOutputStream(new BufferedInputStream(clientSock.getInputStream()));
                     System.out.println("Terminated");
                     out.flush();
